@@ -1,0 +1,8 @@
+.build/
+archive/firmware/.esphome/
+archive/firmware/secrets.yaml
+__pycache__/
+venus/dbus-maxxfan-bridge/state-*.json
+venus/dbus-maxxfan-bridge/presets.json
+venus/dbus-maxxfan-bridge/config.ini
+.DS_Store

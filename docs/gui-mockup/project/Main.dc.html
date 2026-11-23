@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>MaxxFan switch pane</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#000000}
+a{color:#7FB2EE}a:hover{color:#A9CCF4}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 800px; height: 480px; position: relative; overflow: hidden; background: #000000; color: #FFFFFF; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column">
+  <div style="height: 48px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; background: #0B0B0C; border-bottom: 1px solid #222224">
+    <div style="display: flex; align-items: center; gap: 10px">
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true"><rect x="2" y="7" width="22" height="12" rx="6" stroke="#7FB2EE" stroke-width="1.8"></rect><circle cx="18" cy="13" r="3.5" fill="#7FB2EE"></circle></svg>
+      <span style="font-size: 18px; font-weight: 600">Schakelaars</span>
+    </div>
+    <button type="button" aria-label="Schakelpaneel sluiten" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; padding: 0">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 12.5l5-5 5 5" stroke="#A0A0A0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+    </button>
+  </div>
+
+  <div style="flex-grow: 1; display: flex; gap: 12px; padding: 16px; align-items: flex-start">
+    <div style="width: 188px; flex-shrink: 0; background: #1C1C1E; border-radius: 10px; padding: 0 12px; box-sizing: border-box; position: relative">
+      <div style="height: 52px; display: flex; align-items: center">
+        <span style="font-size: 17px; font-weight: 600">Snelkeuze</span>
+      </div>
+      <sc-for list="{{ presets }}" as="p" hint-placeholder-count="4">
+        <div style="height: 60px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #2C2C2E">
+          <span style="font-size: 15px; font-weight: {{ p.weight }}">{{ p.label }}</span>
+          <button type="button" onClick="{{ p.tap }}" aria-label="{{ p.label }}" aria-pressed="{{ p.pressed }}" style="width: 76px; height: 44px; border-radius: 22px; border: none; padding: 4px; box-sizing: border-box; display: flex; align-items: center; justify-content: {{ p.justify }}; background: {{ p.bg }}; cursor: pointer">
+            <span style="width: 36px; height: 36px; border-radius: 18px; background: #FFFFFF; display: block"></span>
+          </button>
+        </div>
+      </sc-for>
+      <div style="height: 60px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #2C2C2E; position: relative">
+        <span style="font-size: 15px">Opslaan als</span>
+        <button type="button" onClick="{{ openSave }}" aria-label="Opslaan als" aria-haspopup="true" aria-expanded="{{ saveExpanded }}" style="width: 76px; height: 44px; padding: 0 10px; border-radius: 8px; border: 1px solid #3A3A3C; background: #262628; color: #FFFFFF; display: flex; align-items: center; justify-content: space-between; font-size: 15px; cursor: pointer">
+          <span>—</span>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="#A0A0A0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        </button>
+        <sc-if value="{{ saveOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="position: absolute; bottom: 54px; left: 0; z-index: 5; width: 164px; padding: 4px; box-sizing: border-box; background: #2A2A2C; border: 1px solid #3A3A3C; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.6); display: flex; flex-direction: column">
+            <sc-for list="{{ saveOptions }}" as="opt" hint-placeholder-count="4">
+              <button type="button" onClick="{{ opt.pick }}" style="height: 44px; text-align: left; padding: 0 12px; background: transparent; border: none; border-radius: 6px; color: #FFFFFF; font-size: 15px; cursor: pointer">{{ opt.label }}</button>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+
+    <sc-for list="{{ fans }}" as="fan" hint-placeholder-count="2">
+      <div style="width: 274px; flex-shrink: 0; background: #1C1C1E; border-radius: 10px; padding: 0 16px; box-sizing: border-box; position: relative">
+        <div style="height: 52px; display: flex; align-items: center; justify-content: space-between">
+          <span style="font-size: 17px; font-weight: 600">{{ fan.name }}</span>
+          <span style="font-size: 13px; color: #A0A0A0">{{ fan.status }}</span>
+        </div>
+
+        <div style="height: 60px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #2C2C2E">
+          <span style="font-size: 15px">Ventilator</span>
+          <button type="button" onClick="{{ fan.toggleOn }}" aria-label="Ventilator" aria-pressed="{{ fan.onPressed }}" style="width: 76px; height: 44px; border-radius: 22px; border: none; padding: 4px; box-sizing: border-box; display: flex; align-items: center; justify-content: {{ fan.onJustify }}; background: {{ fan.onBg }}; cursor: pointer">
+            <span style="width: 36px; height: 36px; border-radius: 18px; background: #FFFFFF; display: block"></span>
+          </button>
+        </div>
+
+        <div style="height: 60px; display: flex; align-items: center; gap: 10px; border-top: 1px solid #2C2C2E">
+          <label for="{{ fan.speedId }}" style="font-size: 15px; width: 64px; flex-shrink: 0">Snelheid</label>
+          <input id="{{ fan.speedId }}" type="range" min="10" max="100" step="10" value="{{ fan.speed }}" onChange="{{ fan.setSpeed }}" style="flex-grow: 1; min-width: 0; height: 44px; margin: 0; accent-color: {{ accent }}; cursor: pointer">
+          <span style="font-size: 15px; width: 46px; text-align: right; color: #D8D8D8">{{ fan.speedText }}</span>
+        </div>
+
+        <div style="height: 60px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #2C2C2E; position: relative">
+          <span style="font-size: 15px">Richting</span>
+          <button type="button" onClick="{{ fan.openDir }}" aria-haspopup="true" aria-expanded="{{ fan.dirExpanded }}" style="min-width: 120px; height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid #3A3A3C; background: #262628; color: #FFFFFF; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 15px; cursor: pointer">
+            <span>{{ fan.dirLabel }}</span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="#A0A0A0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          </button>
+          <sc-if value="{{ fan.dirOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="position: absolute; top: 54px; right: 0; z-index: 5; width: 160px; padding: 4px; box-sizing: border-box; background: #2A2A2C; border: 1px solid #3A3A3C; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.6); display: flex; flex-direction: column">
+              <sc-for list="{{ fan.dirOptions }}" as="opt" hint-placeholder-count="2">
+                <button type="button" onClick="{{ opt.pick }}" style="height: 44px; text-align: left; padding: 0 12px; background: transparent; border: none; border-radius: 6px; color: {{ opt.color }}; font-weight: {{ opt.weight }}; font-size: 15px; cursor: pointer">{{ opt.label }}</button>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="height: 60px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #2C2C2E">
+          <span style="font-size: 15px">Klep open</span>
+          <button type="button" onClick="{{ fan.toggleLid }}" aria-label="Klep open" aria-pressed="{{ fan.lidPressed }}" style="width: 76px; height: 44px; border-radius: 22px; border: none; padding: 4px; box-sizing: border-box; display: flex; align-items: center; justify-content: {{ fan.lidJustify }}; background: {{ fan.lidBg }}; cursor: pointer">
+            <span style="width: 36px; height: 36px; border-radius: 18px; background: #FFFFFF; display: block"></span>
+          </button>
+        </div>
+
+        <div style="height: 60px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #2C2C2E; position: relative">
+          <span style="font-size: 15px">Modus</span>
+          <button type="button" onClick="{{ fan.openMode }}" aria-haspopup="true" aria-expanded="{{ fan.modeExpanded }}" style="min-width: 120px; height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid #3A3A3C; background: #262628; color: #FFFFFF; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 15px; cursor: pointer">
+            <span>{{ fan.modeLabel }}</span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="#A0A0A0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          </button>
+          <sc-if value="{{ fan.modeOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="position: absolute; bottom: 54px; right: 0; z-index: 5; width: 160px; padding: 4px; box-sizing: border-box; background: #2A2A2C; border: 1px solid #3A3A3C; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.6); display: flex; flex-direction: column">
+              <sc-for list="{{ fan.modeOptions }}" as="opt" hint-placeholder-count="2">
+                <button type="button" onClick="{{ opt.pick }}" style="height: 44px; text-align: left; padding: 0 12px; background: transparent; border: none; border-radius: 6px; color: {{ opt.color }}; font-weight: {{ opt.weight }}; font-size: 15px; cursor: pointer">{{ opt.label }}</button>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{ menuOpen }}" hint-placeholder-val="{{ false }}">
+    <button type="button" aria-label="Menu sluiten" onClick="{{ closeMenu }}" style="position: absolute; top: 0; left: 0; width: 800px; height: 480px; background: transparent; border: none; z-index: 4; cursor: default"></button>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#2F6DB5","options":["#2F6DB5","#1F7A5C","#B4541F"]},"$preview":{"width":800,"height":480}}'>
+class Component extends DCLogic {
+  cur() {
+    if (this.state && this.state.fans) return this.state;
+    return {
+      fans: {
+        f1: { name: 'Keuken', on: 1, speed: 60, dir: 1, lid: 1, mode: 0 },
+        f2: { name: 'Bed', on: 0, speed: 20, dir: 0, lid: 0, mode: 0 }
+      },
+      presets: {
+        cooking: { label: 'Koken', t: { f1: { mode: 0, on: 1, dir: 1, speed: 80, lid: 1 }, f2: { mode: 0, on: 1, dir: 0, speed: 30, lid: 1 } } },
+        sleep: { label: 'Slapen', t: { f1: { mode: 0, on: 1, dir: 1, speed: 20, lid: 1 }, f2: { mode: 0, on: 0, lid: 1 } } },
+        drive: { label: 'Rijden', t: { f1: { mode: 0, on: 0, lid: 0 }, f2: { mode: 0, on: 0, lid: 0 } } },
+        standard: { label: 'Standaard', t: { f1: { mode: 0, on: 1, dir: 1, speed: 40, lid: 1 }, f2: { mode: 0, on: 1, dir: 0, speed: 40, lid: 1 } } }
+      },
+      active: null,
+      menu: null
+    };
+  }
+
+  put(patch) {
+    this.setState(Object.assign({}, this.cur(), patch));
+  }
+
+  change(id, patch) {
+    const s = this.cur();
+    const f = Object.assign({}, s.fans[id]);
+    if (f.mode === 1 && !('mode' in patch)) f.mode = 0;
+    Object.assign(f, patch);
+    if (patch.mode === 1) { f.on = 1; f.lid = 1; }
+    if (patch.lid === 0) { f.on = 0; }  // closing the lid switches the fan off; opening starts nothing
+    const fans = Object.assign({}, s.fans);
+    fans[id] = f;
+    this.put({ fans: fans, menu: null, active: null });
+  }
+
+  applyPreset(key) {
+    const s = this.cur();
+    if (s.active === key) { this.put({ active: null, menu: null }); return; }
+    const fans = {};
+    Object.keys(s.fans).forEach((id) => {
+      const t = s.presets[key].t[id];
+      fans[id] = t ? Object.assign({}, s.fans[id], t) : s.fans[id];
+      if (t && t.mode === 1) { fans[id].on = 1; fans[id].lid = 1; }
+    });
+    this.put({ fans: fans, active: key, menu: null });
+  }
+
+  savePreset(key) {
+    const s = this.cur();
+    const t = {};
+    Object.keys(s.fans).forEach((id) => {
+      const f = s.fans[id];
+      if (f.mode) t[id] = { mode: 1 };
+      else if (!f.on) t[id] = { mode: 0, on: 0, lid: f.lid };
+      else t[id] = { mode: 0, on: 1, dir: f.dir, speed: f.speed, lid: f.lid };
+    });
+    const presets = Object.assign({}, s.presets);
+    presets[key] = { label: s.presets[key].label, t: t };
+    this.put({ presets: presets, active: key, menu: null });
+  }
+
+  menu(key) {
+    const s = this.cur();
+    this.put({ menu: s.menu === key ? null : key });
+  }
+
+  renderVals() {
+    const s = this.cur();
+    const accent = this.props.accent ?? '#2F6DB5';
+    const sw = (v) => ({ bg: v ? accent : '#48484A', justify: v ? 'flex-end' : 'flex-start', pressed: v ? 'true' : 'false' });
+    const options = (id, key, value, labels) => labels.map((label, v) => ({
+      label: label,
+      color: value === v ? '#7FB2EE' : '#FFFFFF',
+      weight: value === v ? '600' : '400',
+      pick: () => { const p = {}; p[key] = v; this.change(id, p); }
+    }));
+    const order = ['cooking', 'sleep', 'drive', 'standard'];
+    const presets = order.map((key) => {
+      const v = sw(s.active === key);
+      return {
+        label: s.presets[key].label,
+        weight: s.active === key ? '600' : '400',
+        bg: v.bg, justify: v.justify, pressed: v.pressed,
+        tap: () => this.applyPreset(key)
+      };
+    });
+    const saveOptions = order.map((key) => ({ label: s.presets[key].label, pick: () => this.savePreset(key) }));
+    const fans = ['f1', 'f2'].map((id) => {
+      const f = s.fans[id];
+      const on = sw(f.on);
+      const lid = sw(f.lid);
+      return {
+        name: f.name,
+        status: f.mode ? 'Automatisch' : (f.on ? 'Draait' : 'Uit'),
+        onBg: on.bg, onJustify: on.justify, onPressed: on.pressed,
+        lidBg: lid.bg, lidJustify: lid.justify, lidPressed: lid.pressed,
+        toggleOn: () => this.change(id, { on: f.on ? 0 : 1 }),
+        toggleLid: () => this.change(id, { lid: f.lid ? 0 : 1 }),
+        speed: f.speed,
+        speedText: f.speed + ' %',
+        speedId: id + '-speed',
+        setSpeed: (e) => this.change(id, { speed: Number(e.target.value) }),
+        dirLabel: f.dir ? 'Afzuigen' : 'Inblazen',
+        dirOpen: s.menu === id + 'dir',
+        dirExpanded: s.menu === id + 'dir' ? 'true' : 'false',
+        openDir: () => this.menu(id + 'dir'),
+        dirOptions: options(id, 'dir', f.dir, ['Inblazen', 'Afzuigen']),
+        modeLabel: f.mode ? 'Automatisch' : 'Handmatig',
+        modeOpen: s.menu === id + 'mode',
+        modeExpanded: s.menu === id + 'mode' ? 'true' : 'false',
+        openMode: () => this.menu(id + 'mode'),
+        modeOptions: options(id, 'mode', f.mode, ['Handmatig', 'Automatisch'])
+      };
+    });
+    return {
+      accent: accent,
+      presets: presets,
+      saveOptions: saveOptions,
+      saveOpen: s.menu === 'save',
+      saveExpanded: s.menu === 'save' ? 'true' : 'false',
+      openSave: () => this.menu('save'),
+      fans: fans,
+      menuOpen: !!s.menu,
+      closeMenu: () => this.put({ menu: null })
+    };
+  }
+}
+</script>
+</body>
+</html>

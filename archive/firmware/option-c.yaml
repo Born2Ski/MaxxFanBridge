@@ -1,0 +1,228 @@
+# Option C — replacement controller. See archive/hardware/option-c-replacement.md.
+# One copy per fan; change node_id. Tune the substitutions on the bench before closing the fan.
+#   esphome run option-c.yaml
+
+substitutions:
+  node_id: fan2
+  variant: C
+  lid_stall_amps: "1.0"     # current that means "lid reached the end"
+  lid_timeout: 20s          # give up driving the lid after this long
+  fan_min_power: "0.15"     # PWM duty at speed 10 %; raise if the motor will not start
+  thermostat_band: "1.0"    # °C either side of the setpoint
+
+packages:
+  common: !include common.yaml
+
+globals:
+  - {id: lid_pos, type: int, restore_value: false, initial_value: "-1"}   # -1 unknown, 0 closed, 1 open
+
+output:
+  - platform: ledc
+    id: fan_pwm
+    pin: GPIO25
+    frequency: 20000Hz
+    min_power: ${fan_min_power}
+    zero_means_zero: true
+  - platform: gpio
+    id: fan_dir
+    pin: GPIO26
+
+fan:
+  - platform: speed
+    id: motor
+    internal: true
+    output: fan_pwm
+    direction_output: fan_dir
+    speed_count: 10
+    restore_mode: ALWAYS_OFF
+
+switch:
+  - {platform: gpio, id: lid_en, pin: GPIO32, internal: true, restore_mode: ALWAYS_OFF}
+  - {platform: gpio, id: lid_ph, pin: GPIO33, internal: true, restore_mode: ALWAYS_OFF}
+  - {platform: gpio, id: lid_wake, pin: GPIO27, internal: true, restore_mode: ALWAYS_ON}
+
+sensor:
+  - platform: adc
+    id: lid_current
+    internal: true
+    pin: GPIO34
+    attenuation: 12db
+    update_interval: 50ms
+    filters:
+      - multiply: 0.4                       # DRV8876 carrier: about 2.5 V per amp
+      - sliding_window_moving_average: {window_size: 4, send_every: 1}
+  - platform: adc
+    id: supply_voltage
+    name: supply
+    pin: GPIO39
+    attenuation: 12db
+    update_interval: 30s
+    filters: [{multiply: 5.7}]
+    state_topic: maxxfan/${node_id}/diag/supply
+  - platform: adc
+    id: ntc_volts
+    internal: true
+    pin: GPIO36
+    attenuation: 12db
+    update_interval: 15s
+  - platform: resistance
+    id: ntc_ohms
+    internal: true
+    sensor: ntc_volts
+    configuration: DOWNSTREAM
+    resistor: 10kOhm
+  - platform: ntc
+    id: ceiling_temp
+    internal: true
+    sensor: ntc_ohms
+    calibration:
+      b_constant: 3950
+      reference_temperature: 25°C
+      reference_resistance: 10kOhm
+    on_value:
+      - mqtt.publish:
+          topic: maxxfan/${node_id}/state/temp
+          retain: true
+          payload: !lambda 'return str_sprintf("%.1f", x);'
+      - script.execute: thermostat
+
+# Ceiling keypad. Confirm the matrix with a multimeter first (hardware doc, "Keypad").
+matrix_keypad:
+  id: keypad
+  rows:
+    - pin: GPIO18       # header pin 7
+    - pin: GPIO19       # header pin 8
+  columns:
+    - pin: {number: GPIO21, mode: {input: true, pullup: true}}   # header pin 4
+    - pin: {number: GPIO22, mode: {input: true, pullup: true}}   # header pin 5
+    - pin: {number: GPIO23, mode: {input: true, pullup: true}}   # header pin 6
+  keys: "AIPL-+"        # row 7: Auto, In/out, Power.  row 8: Lid, slower, faster
+
+binary_sensor:
+  - platform: matrix_keypad
+    keypad_id: keypad
+    key: P
+    id: key_power
+    internal: true
+    on_press:
+      - lambda: id(st_on) = !id(st_on); id(st_auto) = false;
+      - script.execute: apply
+  - platform: matrix_keypad
+    keypad_id: keypad
+    key: I
+    id: key_inout
+    internal: true
+    on_press:
+      - lambda: id(st_exhaust) = !id(st_exhaust);
+      - script.execute: apply
+  - platform: matrix_keypad
+    keypad_id: keypad
+    key: A
+    id: key_auto
+    internal: true
+    on_press:
+      - lambda: id(st_auto) = !id(st_auto);
+      - script.execute: apply
+  - platform: matrix_keypad
+    keypad_id: keypad
+    key: L
+    id: key_lid
+    internal: true
+    on_press:
+      - lambda: id(st_lid) = !id(st_lid); id(st_auto) = false;
+      - script.execute: apply
+  - platform: matrix_keypad
+    keypad_id: keypad
+    key: "+"
+    id: key_faster
+    internal: true
+    on_press:
+      - lambda: |-
+          if (id(st_auto)) id(st_setpoint) = clamp(id(st_setpoint) + 1, -2, 37);
+          else id(st_speed) = clamp(id(st_speed) + 10, 10, 100);
+      - script.execute: apply
+  - platform: matrix_keypad
+    keypad_id: keypad
+    key: "-"
+    id: key_slower
+    internal: true
+    on_press:
+      - lambda: |-
+          if (id(st_auto)) id(st_setpoint) = clamp(id(st_setpoint) - 1, -2, 37);
+          else id(st_speed) = clamp(id(st_speed) - 10, 10, 100);
+      - script.execute: apply
+
+script:
+  # Make the motors match the st_* globals.
+  - id: apply
+    mode: restart
+    then:
+      - script.execute: publish_state
+      - if:
+          condition:
+            lambda: 'return id(lid_pos) != (id(st_lid) ? 1 : 0);'
+          then:
+            - script.execute:
+                id: move_lid
+                open: !lambda 'return id(st_lid);'
+      - if:
+          condition:
+            lambda: 'return !id(st_on);'
+          then:
+            - fan.turn_off: motor
+          else:
+            - if:
+                condition:
+                  lambda: 'return id(motor).state && (id(motor).direction == FanDirection::FORWARD) != id(st_exhaust);'
+                then:
+                  - fan.turn_off: motor
+                  - delay: 3s             # let the blade stop before reversing
+            - fan.turn_on:
+                id: motor
+                speed: !lambda 'return id(st_speed) / 10;'
+                direction: !lambda 'return id(st_exhaust) ? FanDirection::FORWARD : FanDirection::REVERSE;'
+
+  # Drive the lid until the motor stalls at the end of travel, or the timeout expires.
+  - id: move_lid
+    mode: restart
+    parameters:
+      open: bool
+    then:
+      - lambda: id(lid_pos) = -1;
+      - switch.turn_off: lid_en
+      - delay: 200ms
+      - if:
+          condition:
+            lambda: 'return open;'
+          then:
+            - switch.turn_on: lid_ph
+          else:
+            - switch.turn_off: lid_ph
+      - switch.turn_on: lid_en
+      - delay: 500ms                      # ignore the start-up current surge
+      - wait_until:
+          condition:
+            lambda: 'return id(lid_current).state > ${lid_stall_amps};'
+          timeout: ${lid_timeout}
+      - switch.turn_off: lid_en
+      - lambda: 'id(lid_pos) = open ? 1 : 0;'
+
+  # A packet from the handheld remote: obey it.
+  - id: remote_packet
+    then:
+      - script.execute: apply
+
+  # Auto mode: open and exhaust when warm, stop and close when cool.
+  - id: thermostat
+    then:
+      - lambda: |-
+          if (!id(st_auto) || isnan(id(ceiling_temp).state)) return;
+          float t = id(ceiling_temp).state;
+          bool running = id(st_on) && id(st_lid);
+          if (!running && t >= id(st_setpoint) + ${thermostat_band}) {
+            id(st_on) = true; id(st_lid) = true; id(st_exhaust) = true;
+            id(apply).execute();
+          } else if ((id(st_on) || id(st_lid)) && t <= id(st_setpoint) - ${thermostat_band}) {
+            id(st_on) = false; id(st_lid) = false;
+            id(apply).execute();
+          }

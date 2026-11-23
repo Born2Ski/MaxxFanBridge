@@ -1,0 +1,44 @@
+# Option A — tap board. See archive/hardware/option-a-tap.md.
+# One copy of this file per fan; change node_id (fan1, fan2) to match the Cerbo's config.ini.
+#   esphome run option-a.yaml
+
+substitutions:
+  node_id: fan1
+  variant: A
+
+packages:
+  common: !include common.yaml
+  # sensing: !include option-a-sensing.yaml     # Stage 2: motor lead voltages
+
+uart:
+  - id: !extend ir_uart
+    tx_pin: GPIO17      # through the Schottky diode to the fan's receiver output
+
+# LED variant only: 38 kHz carrier for the IR LED wired between GPIO18 and GPIO17.
+# output:
+#   - platform: ledc
+#     id: carrier
+#     pin: GPIO18
+#     frequency: 38000Hz
+# esphome:
+#   on_boot:
+#     - output.set_level: {id: carrier, level: 33%}
+
+script:
+  # Send the complete wanted state to the fan, as the handheld remote would.
+  - id: apply
+    mode: queued
+    then:
+      - lambda: |-
+          MaxxState s{id(st_on), id(st_speed), id(st_exhaust), id(st_lid), id(st_auto), id(st_setpoint)};
+          uint8_t packet[MAXX_PACKET_LEN];
+          maxx_encode(s, packet);
+          id(last_tx_ms) = millis();
+          id(ir_uart).write_array(packet, MAXX_PACKET_LEN);
+      - script.execute: publish_state
+      - delay: 400ms    # a packet takes about 150 ms; leave a gap before the next
+
+  # The fan heard the handheld remote too, so there is nothing to do but report it.
+  - id: remote_packet
+    then:
+      - script.execute: publish_state

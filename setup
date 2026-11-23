@@ -1,0 +1,42 @@
+#!/bin/bash
+#
+# SetupHelper setup script for MaxxFanBridge: MaxxFan cards in the Venus OS switch pane.
+# PackageManager (Settings → PackageManager) runs this to install, uninstall, and reinstall
+# after a Venus OS update. By hand: /data/MaxxFanBridge/setup
+#
+# What it installs: the dbus-maxxfan-bridge service (services/). Nothing in Venus OS itself
+# is modified. The settings live in /data/setupOptions/MaxxFanBridge (config.ini, the lid
+# memory, saved presets); package updates and uninstalls leave that folder alone.
+
+if [ ! -f "/data/SetupHelper/HelperResources/IncludeHelpers" ]; then
+    echo "MaxxFanBridge needs SetupHelper: https://github.com/kwindrem/SetupHelper"
+    exit 1
+fi
+
+#### following line incorporates helper resources into this script
+source "/data/SetupHelper/HelperResources/IncludeHelpers"
+#### end of lines to include helper resources
+
+if [ "$scriptAction" == 'NONE' ]; then
+    standardActionPrompt
+fi
+
+if [ "$scriptAction" == 'INSTALL' ]; then
+    # the driver also finds a paho copied into the settings folder, which updates leave alone
+    if ! PYTHONPATH="$setupOptionsDir" python3 -c "import paho.mqtt.client" 2> /dev/null; then
+        setInstallFailed $EXIT_ERROR "python3 paho-mqtt is missing; copy it to $setupOptionsDir (see venus/README.md)"
+    fi
+fi
+
+if [ "$scriptAction" == 'INSTALL' ] && ! $installFailed ; then
+    mkdir -p "$setupOptionsDir"
+    if [ ! -f "$setupOptionsDir/config.ini" ]; then
+        cp "$scriptDir/venus/dbus-maxxfan-bridge/config.default.ini" "$setupOptionsDir/config.ini"
+        logMessage "created $setupOptionsDir/config.ini from the defaults"
+    fi
+    logMessage "settings: $setupOptionsDir/config.ini; after editing: svc -t /service/dbus-maxxfan-bridge"
+fi
+
+# Installs or removes services/dbus-maxxfan-bridge according to scriptAction (and removes it
+# again if the install failed). Never returns.
+endScript INSTALL_SERVICES

@@ -1,0 +1,32 @@
+# Option A, stage 2: publish the four motor lead voltages for bench measurements.
+# Dividers are 47k / 10k, so pin volts x 5.7 = lead volts.
+
+sensor:
+  - platform: adc
+    name: fan lead 1
+    pin: GPIO34
+    attenuation: 12db
+    update_interval: 2s
+    filters: [{multiply: 5.7}]
+    state_topic: maxxfan/${node_id}/diag/fan_lead_1
+  - platform: adc
+    name: fan lead 2
+    pin: GPIO35
+    attenuation: 12db
+    update_interval: 2s
+    filters: [{multiply: 5.7}]
+    state_topic: maxxfan/${node_id}/diag/fan_lead_2
+  - platform: adc
+    name: lid lead 1
+    pin: GPIO32
+    attenuation: 12db
+    update_interval: 2s
+    filters: [{multiply: 5.7}]
+    state_topic: maxxfan/${node_id}/diag/lid_lead_1
+  - platform: adc
+    name: lid lead 2
+    pin: GPIO33
+    attenuation: 12db
+    update_interval: 2s
+    filters: [{multiply: 5.7}]
+    state_topic: maxxfan/${node_id}/diag/lid_lead_2

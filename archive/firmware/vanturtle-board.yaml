@@ -1,0 +1,194 @@
+# Option E: ESP32 beside the VanTurtle board at each fan. See archive/hardware/option-e-vanturtle-esp32.md.
+#
+# This ESP32 only relays key presses. Which keys to press, and what the fan is believed to be
+# doing, is decided by the driver on the Venus device (vtboard.py + vanturtle.py), as with a
+# board on the Pi's own pins. Topics: archive/docs/mqtt-contract.md, option E.
+#
+# One build per fan, from this folder (secrets.yaml next to it):
+#   esphome run vanturtle-board.yaml                      fan 1
+#   esphome -s node_id fan2 run vanturtle-board.yaml      fan 2
+# The first time over USB, later over WiFi.
+
+substitutions:
+  node_id: fan1          # must match the fan's section in config.ini
+  sda_pin: GPIO4         # to the board's SDA
+  scl_pin: GPIO5         # to the board's SCL
+  board_address: "0x27"  # all address pads open, the factory setting
+
+esphome:
+  name: maxxfan-board-${node_id}
+  includes:
+    - vanturtle_relay.h
+    - vanturtle_board.h
+  on_boot:
+    priority: 600  # once the I2C bus is up
+    then:
+      - lambda: id(i2c_ok) = vt_prepare(id(bus), ${board_address});
+
+esp32:
+  board: esp32-c3-devkitm-1  # also right for ESP32-C3 SuperMini and LOLIN C3 Mini
+  framework:
+    type: esp-idf
+
+logger:
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  power_save_mode: none  # answer each press at once instead of after the next WiFi wake-up
+  # output_power: 8.5dB  # some ESP32-C3 SuperMini boards only hold a connection with this
+  ap:
+    ssid: maxxfan-board-${node_id}
+    password: !secret ota_password
+
+captive_portal:
+
+i2c:
+  id: bus
+  sda: ${sda_pin}
+  scl: ${scl_pin}
+  frequency: 50kHz  # short wires and the ESP32's own weak pull-ups; see the hardware document
+  scan: true        # the log at start-up should list 0x27
+
+mqtt:
+  broker: !secret mqtt_broker
+  port: 1883
+  username: !secret mqtt_username
+  password: !secret mqtt_password
+  discovery: false
+  log_topic:  # its log, readable in the van with mosquitto_sub (the driver ignores it)
+    topic: maxxfan/${node_id}/board/log
+    level: INFO
+  topic_prefix: maxxfan/${node_id}/board/esphome
+  birth_message:
+    topic: maxxfan/${node_id}/board/status
+    payload: online
+    retain: true
+  will_message:
+    topic: maxxfan/${node_id}/board/status
+    payload: offline
+    retain: true
+  shutdown_message:
+    topic: maxxfan/${node_id}/board/status
+    payload: offline
+    retain: true
+  on_connect:
+    - script.execute: publish_state
+  on_json_message:
+    - topic: maxxfan/${node_id}/board/press
+      then:
+        - lambda: |-
+            const uint32_t seq = x["seq"] | 0u;
+            auto &relay = vt_relay();
+            switch (relay.request(seq, x["ch"] | 0, x["key"] | 0, x["ms"] | 0, x["gap"] | 0)) {
+              case RELAY_PRESS:
+                id(press).execute();
+                break;
+              case RELAY_REPEAT: {
+                const RelayAnswer &a = *relay.find(seq);
+                ESP_LOGI("vanturtle", "press %u again: answering, not pressing", (unsigned) seq);
+                vt_answer("maxxfan/${node_id}/board/done", a, "i2c");
+                break;
+              }
+              case RELAY_REFUSE: {
+                RelayAnswer a;
+                a.seq = seq;
+                a.fresh = id(i2c_ok);
+                a.in1 = id(in1);
+                a.in2 = id(in2);
+                ESP_LOGW("vanturtle", "press %u refused: %s", (unsigned) seq, relay.refusal);
+                vt_answer("maxxfan/${node_id}/board/done", a, relay.refusal);
+                break;
+              }
+              case RELAY_WAIT:
+                break;
+            }
+
+globals:
+  - {id: i2c_ok, type: bool, initial_value: "false"}
+  - {id: press_ok, type: bool, initial_value: "false"}
+  - {id: in1, type: uint8_t, initial_value: "0xFF"}
+  - {id: in2, type: uint8_t, initial_value: "0xFF"}
+  - {id: last_prepare_ms, type: uint32_t, initial_value: "0"}
+
+script:
+  # One key press: down, hold, up, gap, read the auto-sense inputs, answer.
+  - id: press
+    mode: single
+    then:
+      - lambda: |-
+          auto &r = vt_relay();
+          id(press_ok) = id(i2c_ok) && vt_write(id(bus), ${board_address}, r.out_reg(), r.press_bits());
+          ESP_LOGI("vanturtle", "press %u: port %d key 0x%02x for %d ms", (unsigned) r.busy, r.ch, r.key, r.ms);
+      - if:
+          condition:
+            lambda: return id(press_ok);
+          then:
+            - delay: !lambda return vt_relay().ms;
+      - lambda: |-
+          auto &r = vt_relay();
+          // Release, twice if need be: while a key is held the fan ignores its own keypad.
+          bool up = vt_write(id(bus), ${board_address}, r.out_reg(), 0x00) ||
+                    vt_write(id(bus), ${board_address}, r.out_reg(), 0x00);
+          if (!up) {
+            id(i2c_ok) = false;
+            ESP_LOGE("vanturtle", "could not release port %d", r.ch);
+          }
+          id(press_ok) = id(press_ok) && up;
+      - delay: !lambda return vt_relay().gap;
+      - lambda: |-
+          uint8_t a = 0xFF, b = 0xFF;
+          bool fresh = id(i2c_ok) && vt_read(id(bus), ${board_address}, 0x00, &a) &&
+                       vt_read(id(bus), ${board_address}, 0x01, &b);
+          if (fresh) {
+            id(in1) = a;
+            id(in2) = b;
+          } else {
+            id(i2c_ok) = false;
+          }
+          const RelayAnswer &answer = vt_relay().finished(id(press_ok), fresh, id(in1), id(in2));
+          vt_answer("maxxfan/${node_id}/board/done", answer, "i2c");
+
+  - id: publish_state
+    then:
+      - mqtt.publish_json:
+          topic: maxxfan/${node_id}/board/state
+          retain: true
+          payload: |-
+            root["in1"] = id(in1);
+            root["in2"] = id(in2);
+            root["i2c"] = id(i2c_ok);
+
+interval:
+  # Follow the auto-sense lines (Auto pressed on the keypad or remote), and recover the bus.
+  - interval: 250ms
+    then:
+      - lambda: |-
+          if (id(press).is_running()) return;
+          if (!id(i2c_ok)) {
+            if (millis() - id(last_prepare_ms) < 5000) return;
+            id(last_prepare_ms) = millis();
+            if (!vt_prepare(id(bus), ${board_address})) return;
+            id(i2c_ok) = true;
+            ESP_LOGI("vanturtle", "board answers again");
+            id(publish_state).execute();
+          }
+          uint8_t a, b;
+          if (!vt_read(id(bus), ${board_address}, 0x00, &a) || !vt_read(id(bus), ${board_address}, 0x01, &b)) {
+            id(i2c_ok) = false;
+            ESP_LOGW("vanturtle", "board not answering on I2C");
+            id(publish_state).execute();
+            return;
+          }
+          bool changed = ((a ^ id(in1)) | (b ^ id(in2))) & 0x01;
+          id(in1) = a;
+          id(in2) = b;
+          if (changed) id(publish_state).execute();
+  # Heartbeat: the driver shows the card disconnected after 35 s without one.
+  - interval: 10s
+    then:
+      - script.execute: publish_state

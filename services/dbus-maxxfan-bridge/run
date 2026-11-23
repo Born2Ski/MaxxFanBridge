@@ -1,0 +1,5 @@
+#!/bin/sh
+# Installed by SetupHelper from /data/MaxxFanBridge/services. Settings, the lid memory and
+# saved presets live in /data/setupOptions/MaxxFanBridge, which package updates leave alone.
+exec 2>&1
+exec python3 /data/MaxxFanBridge/venus/dbus-maxxfan-bridge/dbus-maxxfan-bridge.py --data-dir /data/setupOptions/MaxxFanBridge

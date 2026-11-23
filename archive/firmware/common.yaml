@@ -1,0 +1,120 @@
+# Shared by both hardware variants: WiFi, MQTT contract, state, remote-control receiver.
+# The variant file must define a script with id "apply" that makes the hardware match the
+# st_* globals and then runs "publish_state".
+
+esphome:
+  name: maxxfan-${node_id}
+  includes:
+    - maxxfan_packet.h
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+logger:
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: maxxfan-${node_id}-setup
+    password: !secret ota_password
+
+captive_portal:
+
+mqtt:
+  broker: !secret mqtt_broker
+  port: 1883
+  discovery: false
+  topic_prefix: maxxfan/${node_id}/esphome
+  birth_message:
+    topic: maxxfan/${node_id}/status
+    payload: online
+    retain: true
+  will_message:
+    topic: maxxfan/${node_id}/status
+    payload: offline
+    retain: true
+  on_connect:
+    - script.execute: publish_state
+  on_message:
+    - topic: maxxfan/${node_id}/set/on
+      then:
+        - lambda: id(st_on) = atoi(x.c_str()) != 0;
+        - script.execute: apply
+    - topic: maxxfan/${node_id}/set/speed
+      then:
+        - lambda: id(st_speed) = clamp(atoi(x.c_str()) / 10 * 10, 10, 100);
+        - script.execute: apply
+    - topic: maxxfan/${node_id}/set/dir
+      then:
+        - lambda: id(st_exhaust) = atoi(x.c_str()) != 0;
+        - script.execute: apply
+    - topic: maxxfan/${node_id}/set/lid
+      then:
+        - lambda: id(st_lid) = atoi(x.c_str()) != 0;
+        - script.execute: apply
+    - topic: maxxfan/${node_id}/set/mode
+      then:
+        - lambda: id(st_auto) = atoi(x.c_str()) != 0;
+        - script.execute: apply
+    - topic: maxxfan/${node_id}/set/setpoint
+      then:
+        - lambda: id(st_setpoint) = clamp(atoi(x.c_str()), -2, 37);
+        - script.execute: apply
+
+globals:
+  - {id: st_on, type: bool, restore_value: true, initial_value: "false"}
+  - {id: st_speed, type: int, restore_value: true, initial_value: "30"}
+  - {id: st_exhaust, type: bool, restore_value: true, initial_value: "true"}
+  - {id: st_lid, type: bool, restore_value: true, initial_value: "false"}
+  - {id: st_auto, type: bool, restore_value: true, initial_value: "false"}
+  - {id: st_setpoint, type: int, restore_value: true, initial_value: "24"}
+  - {id: last_tx_ms, type: uint32_t, restore_value: false, initial_value: "0"}
+
+script:
+  - id: publish_state
+    mode: restart
+    then:
+      - mqtt.publish: {topic: "maxxfan/${node_id}/state/on", retain: true, payload: !lambda 'return id(st_on) ? "1" : "0";'}
+      - mqtt.publish: {topic: "maxxfan/${node_id}/state/speed", retain: true, payload: !lambda 'return to_string(id(st_speed));'}
+      - mqtt.publish: {topic: "maxxfan/${node_id}/state/dir", retain: true, payload: !lambda 'return id(st_exhaust) ? "1" : "0";'}
+      - mqtt.publish: {topic: "maxxfan/${node_id}/state/lid", retain: true, payload: !lambda 'return id(st_lid) ? "1" : "0";'}
+      - mqtt.publish: {topic: "maxxfan/${node_id}/state/mode", retain: true, payload: !lambda 'return id(st_auto) ? "1" : "0";'}
+      - mqtt.publish: {topic: "maxxfan/${node_id}/state/setpoint", retain: true, payload: !lambda 'return to_string(id(st_setpoint));'}
+      - mqtt.publish: {topic: "maxxfan/${node_id}/state/variant", retain: true, payload: "${variant}"}
+
+# The handheld remote, as seen on the infrared receiver's output: plain 1200 baud serial.
+uart:
+  - id: ir_uart
+    rx_pin: GPIO16
+    baud_rate: 1200
+    stop_bits: 2
+    debug:
+      direction: RX
+      dummy_receiver: true
+      after:
+        timeout: 60ms
+      sequence:
+        - lambda: |-
+            MaxxState s;
+            if (!maxx_decode(bytes.data(), bytes.size(), &s)) {
+              ESP_LOGD("maxxfan", "ignored %u bytes: %s", (unsigned) bytes.size(),
+                       format_hex_pretty(bytes.data(), bytes.size()).c_str());
+              return;
+            }
+            if (millis() - id(last_tx_ms) < 500) return;  // our own packet, echoed on the shared line
+            ESP_LOGI("maxxfan", "remote: on=%d speed=%d exhaust=%d lid=%d auto=%d setpoint=%d",
+                     s.on, s.speed, s.exhaust, s.lid_open, s.auto_mode, s.setpoint_c);
+            id(st_on) = s.on;
+            id(st_speed) = s.speed;
+            id(st_exhaust) = s.exhaust;
+            id(st_lid) = s.lid_open;
+            id(st_auto) = s.auto_mode;
+            id(st_setpoint) = s.setpoint_c;
+            id(remote_packet).execute();

@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Automatisch en een niet verbonden ventilator</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#000000}
+a{color:#7FB2EE}a:hover{color:#A9CCF4}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 800px; height: 480px; position: relative; overflow: hidden; background: #000000; color: #FFFFFF; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column">
+  <div style="height: 48px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; background: #0B0B0C; border-bottom: 1px solid #222224">
+    <div style="display: flex; align-items: center; gap: 10px">
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true"><rect x="2" y="7" width="22" height="12" rx="6" stroke="#7FB2EE" stroke-width="1.8"></rect><circle cx="18" cy="13" r="3.5" fill="#7FB2EE"></circle></svg>
+      <span style="font-size: 18px; font-weight: 600">Schakelaars</span>
+    </div>
+    <button type="button" aria-label="Schakelpaneel sluiten" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; padding: 0">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 12.5l5-5 5 5" stroke="#A0A0A0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+    </button>
+  </div>
+
+  <div style="flex-grow: 1; display: flex; gap: 12px; padding: 16px; align-items: flex-start">
+
+    <div style="width: 188px; flex-shrink: 0; background: #1C1C1E; border-radius: 10px; padding: 0 12px; box-sizing: border-box">
+      <div style="height: 52px; display: flex; align-items: center">
+        <span style="font-size: 17px; font-weight: 600">Snelkeuze</span>
+      </div>
+        <div style="height: 60px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #2C2C2E">
+          <span style="font-size: 15px">Koken</span>
+          <button type="button" aria-label="Koken" aria-pressed="false" style="width: 76px; height: 44px; border-radius: 22px; border: none; padding: 4px; box-sizing: border-box; display: flex; align-items: center; justify-content: flex-start; background: #48484A">
+            <span style="width: 36px; height: 36px; border-radius: 18px; background: #FFFFFF; display: block"></span>
+          </button>
+        </div>
+        <div style="height: 60px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #2C2C2E">
+          <span style="font-size: 15px">Slapen</span>
+          <button type="button" aria-label="Slapen" aria-pressed="false" style="width: 76px; height: 44px; border-radius: 22px; border: none; padding: 4px; box-sizing: border-box; display: flex; align-items: center; justify-content: flex-start; background: #48484A">
+            <span style="width: 36px; height: 36px; border-radius: 18px; background: #FFFFFF; display: block"></span>
+          </button>
+        </div>
+        <div style="height: 60px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #2C2C2E">
+          <span style="font-size: 15px">Rijden</span>
+          <button type="button" aria-label="Rijden" aria-pressed="false" style="width: 76px; height: 44px; border-radius: 22px; border: none; padding: 4px; box-sizing: border-box; display: flex; align-items: center; justify-content: flex-start; background: #48484A">
+            <span style="width: 36px; height: 36px; border-radius: 18px; background: #FFFFFF; display: block"></span>
+          </button>
+        </div>
+        <div style="height: 60px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #2C2C2E">
+          <span style="font-size: 15px">Standaard</span>
+          <button type="button" aria-label="Standaard" aria-pressed="false" style="width: 76px; height: 44px; border-radius: 22px; border: none; padding: 4px; box-sizing: border-box; display: flex; align-items: center; justify-content: flex-start; background: #48484A">
+            <span style="width: 36px; height: 36px; border-radius: 18px; background: #FFFFFF; display: block"></span>
+          </button>
+        </div>
+        <div style="height: 60px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #2C2C2E">
+          <span style="font-size: 15px">Opslaan als</span>
+          <button type="button" aria-label="Opslaan als" aria-haspopup="true" aria-expanded="false" style="width: 76px; height: 44px; padding: 0 10px; border-radius: 8px; border: 1px solid #3A3A3C; background: #262628; color: #FFFFFF; display: flex; align-items: center; justify-content: space-between; font-size: 15px">
+            <span>—</span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="#A0A0A0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          </button>
+        </div>
+    </div>
+
+    <div style="width: 274px; flex-shrink: 0; background: #1C1C1E; border-radius: 10px; padding: 0 16px; box-sizing: border-box; position: relative">
+      <div style="height: 52px; display: flex; align-items: center; justify-content: space-between">
+        <span style="font-size: 17px; font-weight: 600">Keuken</span>
+        <span style="font-size: 13px; color: #A0A0A0">Automatisch</span>
+      </div>
+      <div style="height: 60px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #2C2C2E">
+        <span style="font-size: 15px">Ventilator</span>
+        <button type="button" aria-label="Ventilator" aria-pressed="true" style="width: 76px; height: 44px; border-radius: 22px; border: none; padding: 4px; box-sizing: border-box; display: flex; align-items: center; justify-content: flex-end; background: #2F6DB5">
+          <span style="width: 36px; height: 36px; border-radius: 18px; background: #FFFFFF; display: block"></span>
+        </button>
+      </div>
+      <div style="height: 60px; display: flex; align-items: center; gap: 10px; border-top: 1px solid #2C2C2E">
+        <label for="s-speed-1" style="font-size: 15px; width: 64px; flex-shrink: 0">Snelheid</label>
+        <input id="s-speed-1" type="range" min="10" max="100" step="10" value="60" readonly="" style="flex-grow: 1; min-width: 0; height: 44px; margin: 0; accent-color: #2F6DB5">
+        <span style="font-size: 15px; width: 46px; text-align: right; color: #D8D8D8">60 %</span>
+      </div>
+      <div style="height: 60px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #2C2C2E">
+        <span style="font-size: 15px">Richting</span>
+        <button type="button" aria-haspopup="true" aria-expanded="false" style="min-width: 120px; height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid #3A3A3C; background: #262628; color: #FFFFFF; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 15px">
+          <span>Afzuigen</span>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="#A0A0A0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        </button>
+      </div>
+      <div style="height: 60px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #2C2C2E">
+        <span style="font-size: 15px">Klep open</span>
+        <button type="button" aria-label="Klep open" aria-pressed="true" style="width: 76px; height: 44px; border-radius: 22px; border: none; padding: 4px; box-sizing: border-box; display: flex; align-items: center; justify-content: flex-end; background: #2F6DB5">
+          <span style="width: 36px; height: 36px; border-radius: 18px; background: #FFFFFF; display: block"></span>
+        </button>
+      </div>
+      <div style="height: 60px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #2C2C2E; position: relative">
+        <span style="font-size: 15px">Modus</span>
+        <button type="button" aria-haspopup="true" aria-expanded="true" style="min-width: 120px; height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid #7FB2EE; background: #262628; color: #FFFFFF; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 15px">
+          <span>Automatisch</span>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 10l4-4 4 4" stroke="#A0A0A0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        </button>
+        <div style="position: absolute; bottom: 54px; right: 0; z-index: 5; width: 160px; padding: 4px; box-sizing: border-box; background: #2A2A2C; border: 1px solid #3A3A3C; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.6); display: flex; flex-direction: column">
+          <button type="button" style="height: 44px; text-align: left; padding: 0 12px; background: transparent; border: none; border-radius: 6px; color: #FFFFFF; font-weight: 400; font-size: 15px">Handmatig</button>
+          <button type="button" style="height: 44px; text-align: left; padding: 0 12px; background: #333336; border: none; border-radius: 6px; color: #7FB2EE; font-weight: 600; font-size: 15px">Automatisch</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="width: 274px; flex-shrink: 0; background: #161618; border-radius: 10px; padding: 0 16px; box-sizing: border-box; color: #8E8E93">
+      <div style="height: 52px; display: flex; align-items: center; justify-content: space-between">
+        <span style="font-size: 17px; font-weight: 600; color: #B0B0B5">Bed</span>
+        <span style="font-size: 13px; color: #F0A35E">Niet verbonden</span>
+      </div>
+      <div style="height: 60px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #262628">
+        <span style="font-size: 15px">Ventilator</span>
+        <button type="button" disabled="" aria-label="Ventilator" aria-pressed="false" style="width: 76px; height: 44px; border-radius: 22px; border: none; padding: 4px; box-sizing: border-box; display: flex; align-items: center; justify-content: flex-start; background: #2E2E30">
+          <span style="width: 36px; height: 36px; border-radius: 18px; background: #6A6A6E; display: block"></span>
+        </button>
+      </div>
+      <div style="height: 60px; display: flex; align-items: center; gap: 10px; border-top: 1px solid #262628">
+        <label for="s-speed-2" style="font-size: 15px; width: 64px; flex-shrink: 0">Snelheid</label>
+        <input id="s-speed-2" type="range" min="10" max="100" step="10" value="20" disabled="" style="flex-grow: 1; min-width: 0; height: 44px; margin: 0; accent-color: #6A6A6E">
+        <span style="font-size: 15px; width: 46px; text-align: right">20 %</span>
+      </div>
+      <div style="height: 60px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #262628">
+        <span style="font-size: 15px">Richting</span>
+        <button type="button" disabled="" style="min-width: 120px; height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid #2E2E30; background: #1C1C1E; color: #8E8E93; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 15px">
+          <span>Inblazen</span>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="#6A6A6E" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        </button>
+      </div>
+      <div style="height: 60px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #262628">
+        <span style="font-size: 15px">Klep open</span>
+        <button type="button" disabled="" aria-label="Klep open" aria-pressed="false" style="width: 76px; height: 44px; border-radius: 22px; border: none; padding: 4px; box-sizing: border-box; display: flex; align-items: center; justify-content: flex-start; background: #2E2E30">
+          <span style="width: 36px; height: 36px; border-radius: 18px; background: #6A6A6E; display: block"></span>
+        </button>
+      </div>
+      <div style="height: 60px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #262628">
+        <span style="font-size: 15px">Modus</span>
+        <button type="button" disabled="" style="min-width: 120px; height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid #2E2E30; background: #1C1C1E; color: #8E8E93; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 15px">
+          <span>Handmatig</span>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="#6A6A6E" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":800,"height":480}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

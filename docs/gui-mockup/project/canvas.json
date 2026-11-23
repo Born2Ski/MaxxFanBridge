@@ -1,0 +1,77 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Main.dc.html": {
+      "h": 480,
+      "is_interactive": true,
+      "radius": 12,
+      "title": "Switch pane: press Play, tap a preset or a control",
+      "w": 800,
+      "x": 0,
+      "y": 0
+    },
+    "States.dc.html": {
+      "h": 480,
+      "radius": 12,
+      "title": "Auto mode, menu open, one fan disconnected",
+      "w": 800,
+      "x": 880,
+      "y": 0
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-11-12T12:00:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "noteOrder": [
+    "heading",
+    "about",
+    "behaviour",
+    "trust"
+  ],
+  "notes": {
+    "about": {
+      "fill": "blue",
+      "size": 24,
+      "text": "An approximation of the gui-v2 switch pane at the official display's 800×480, not a pixel copy of Victron's screen, with the card texts in Dutch ([gui] language = nl). The cards are what dbus-maxxfan-bridge creates for the VanTurtle Smart Controllers: Snelkeuze (presets), and one card per fan, Keuken and Bed, with five rows and no setpoint. Aan/Uit, menus and the pane title come from gui-v2 in the Venus OS language. Where gui-v2 places the Snelkeuze card among the others is up to gui-v2.",
+      "w": 520,
+      "x": 0,
+      "y": 560
+    },
+    "behaviour": {
+      "fill": "orange",
+      "size": 24,
+      "text": "Tap a preset (Koken, Slapen, Rijden, Standaard): both fan cards change at once and the preset lights; touching a control of its fans darkens it again. Opslaan als stores the fans as they are into a preset. A touch changes a card at once and holds until the controller confirms (a second or two; longer for big speed steps or while the lid finishes moving); not confirmed in 20 s, it shows the last report. Switching Klep open off switches the fan off first; switching it on only opens the lid. A manual control in Automatisch switches to Handmatig first.",
+      "w": 520,
+      "x": 600,
+      "y": 560
+    },
+    "heading": {
+      "kind": "title1",
+      "maxW": 1680,
+      "text": "MaxxFans Keuken and Bed on the 7-inch Venus OS touchscreen",
+      "w": 240,
+      "x": 0,
+      "y": -260
+    },
+    "trust": {
+      "fill": "teal",
+      "size": 24,
+      "text": "What the card can trust: Ventilator, Snelheid and Modus are reported by the controller in each fan, so they follow the ceiling keypad and the remote too. Richting is the controller's guess. Klep open is the driver's belief: if it shows the wrong way, press Open/Close on the ceiling keypad once. A card greys out as Niet verbonden when its controller has been silent for 150 s (WiFi down, fan fuse pulled).",
+      "w": 480,
+      "x": 1200,
+      "y": 560
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "States.dc.html"
+  ],
+  "pages": [],
+  "title": "MaxxFan switch pane"
+}
