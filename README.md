@@ -59,15 +59,12 @@ Three cards, in Dutch (`[gui] language = nl` in `config.ini`), here just after t
 
 All hardware steps are in `hardware/vanturtle-smart-controller.md`.
 
-1. Check the order confirmation: Maxxair Deluxe (RJ45), firmware **Advanced WiFi**. If it has
-   not shipped yet, ask VanTurtle the three questions in the hardware guide (unlocked flash,
-   MQTT login fields, RJ45 lead).
-2. Give the Pi a fixed address on the van's 2.4 GHz WiFi, and turn on MQTT access in Venus OS.
-3. Install SetupHelper, then the MaxxFanBridge package from a USB stick (`venus/README.md`).
+1. Give the Pi a fixed address on the van's 2.4 GHz WiFi, and turn on MQTT access in Venus OS.
+2. Install SetupHelper, then the MaxxFanBridge package from a USB stick (`venus/README.md`).
    The cards appear and wait for the controllers.
-4. Fit the Keuken fan's controller, join it to the WiFi, type in its topics, and run the bench
+3. Fit the Keuken fan's controller, join it to the WiFi, type in its topics, and run the bench
    checks; put the three settings they ask about in `config.ini` on the Pi. Then the Bed fan.
-5. Try the cards and the presets on the touchscreen.
+4. Try the cards and the presets on the touchscreen.
 
 ## What is where
 
