@@ -55,8 +55,8 @@ names may not contain `-`. Updates replace `/data/MaxxFanBridge` wholesale, so e
 changes lives in `--data-dir /data/setupOptions/MaxxFanBridge` (config.ini copied from
 `config.default.ini` on first start, state-*.json, presets.json, an optional paho copy).
 `tools/make-package.sh [github-user]` builds `.build/MaxxFanBridge-latest.tar.gz` for a USB stick.
-On GitHub as `Born2Ski/MaxxFanBridge` (`gitHubInfo` = `Born2Ski:latest`; PackageManager downloads
-the tag `latest` unauthenticated, so auto-updates need the repo public). Release: raise `version`,
+On GitHub as `Born2Ski/MaxxFanBridge`, public (`gitHubInfo` = `Born2Ski:latest`; PackageManager
+downloads the tag `latest` unauthenticated, so it must stay public). Release: raise `version`,
 commit, `git tag -f latest`, push main and `git push -f origin latest`.
 On the Pi: restart with `svc -t /service/dbus-maxxfan-bridge`; logs in `/var/log/dbus-maxxfan-bridge/current`
 and `/var/log/PackageManager/current`.

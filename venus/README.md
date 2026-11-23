@@ -64,7 +64,7 @@ a USB stick, and put the stick in the Pi. Within a minute PackageManager copies 
 `tail -F /var/log/PackageManager/current | tai64nlocal`, then take the stick out.
 
 **Or from GitHub**, from [Born2Ski/MaxxFanBridge](https://github.com/Born2Ski/MaxxFanBridge).
-This only works while that repository is public (see "Updates" below). Over SSH:
+This needs the repository to stay public (see "Updates" below). Over SSH:
 
 ```sh
 wget -qO - https://github.com/Born2Ski/MaxxFanBridge/archive/latest.tar.gz | tar -xzf - -C /data
@@ -100,8 +100,7 @@ project folder. PackageManager installs any version that differs from the instal
 - **GitHub:** the project lives at
   [github.com/Born2Ski/MaxxFanBridge](https://github.com/Born2Ski/MaxxFanBridge), and its
   `gitHubInfo` file (`Born2Ski:latest`) tells PackageManager where to look. PackageManager
-  downloads without logging in, so the repository has to be **public** for this; it starts out
-  private (`gh repo edit Born2Ski/MaxxFanBridge --visibility public --accept-visibility-change-consequences`).
+  downloads without logging in, so the repository has to stay **public** for this.
   To release: raise `version`, commit, and move the tag `latest` to that commit:
 
   ```sh
