@@ -9,7 +9,7 @@ there. The topics are typed into the controller's web page, all under one prefix
   <prefix>/on     0/1     state and command   fan running, sensed by the controller
   <prefix>/speed  1..10   state and command
   <prefix>/dir    0/1     state and command   the controller's own guess; may be a toggle
-  <prefix>/auto   0/1     state and command   auto mode, sensed
+  <prefix>/auto   0/1     state and command   auto mode, sensed; may be a toggle
   <prefix>/lid    any     command only        toggles the lid; nothing reports its position
   <prefix>/alive  1       state only          every 60 s
 
@@ -19,12 +19,16 @@ Consequences handled here:
   ("echo suppress"). So commands go out one at a time, and only after the controller has been
   quiet for quiet_s.
 - A touch becomes a *wish*, shown on screen until the controller reports that value. Without
-  a report within confirm_s, absolute commands are sent once more; after that the wish is
-  dropped and the screen shows the last report again. Toggles (dir, lid) are never repeated:
-  a repeat would undo the first. Wishes are never re-sent after a report, so the driver does
-  not fight the keypad or the remote.
-- The lid is a belief, kept in the state file. It is toggled only when the wish differs from
-  the belief, and never sooner than lid_settle_s after the last lid movement.
+  a report within confirm_s, on/off and speed are sent once more; after that the wish is
+  dropped and the screen shows the last report again. Direction, lid and Auto are never
+  repeated: they are, or may be, toggles (VanTurtle's web app toggles Auto), and a repeat
+  would undo the first. Wishes are never re-sent after a report, so the driver does not
+  fight the keypad or the remote.
+- Direction: VanTurtle says "0 = maybe forward, 1 = maybe reverse". The driver takes 0 as
+  intake and 1 as exhaust; dir_swapped (swap_direction in config.ini) turns that round.
+- The lid is a belief, kept in the state file; on the very first start it is assumed closed.
+  It is toggled only when the wish differs from the belief, and never sooner than
+  lid_settle_s after the last lid movement.
 - Online means a live (not retained) message arrived within alive_timeout_s.
 
 Everything runs on the D-Bus main loop: the driver calls on_message() for each MQTT message,
@@ -41,7 +45,7 @@ log = logging.getLogger("dbus-maxxfan-bridge")
 LEAF = {"on": "on", "speed": "speed", "dir": "dir", "mode": "auto"}  # driver key -> topic leaf
 KEY = {leaf: key for key, leaf in LEAF.items()}
 ORDER = ("mode", "on", "lid", "dir", "speed")  # leave Auto first; speed and direction last
-RESENDABLE = ("on", "speed", "mode")  # absolute: sending twice is harmless
+RESENDABLE = ("on", "speed")  # absolute: sending twice is harmless. Auto may be a toggle
 TRUE = ("1", "true", "on", "yes")
 FALSE = ("0", "false", "off", "no")
 
@@ -73,20 +77,21 @@ def encode(key, value):
 class VtWifiFan:
     def __init__(self, fan_id, prefix, publish, report, set_online, state_file=None,
                  on_opens_lid=None, lid_settle_s=12.0, confirm_s=10.0, quiet_s=2.0,
-                 alive_timeout_s=150.0, echo_s=5.0, clock=time.monotonic):
+                 alive_timeout_s=150.0, echo_s=5.0, dir_swapped=False, clock=time.monotonic):
         self.id, self.prefix = fan_id, prefix.rstrip("/")
         self._publish, self.report, self._set_online = publish, report, set_online
         self.state_file = state_file
         self.on_opens_lid = on_opens_lid  # True / False / None = not known yet
         self.lid_settle_s, self.confirm_s, self.quiet_s = lid_settle_s, confirm_s, quiet_s
         self.alive_timeout_s, self.echo_s = alive_timeout_s, echo_s
+        self.dir_swapped = dir_swapped  # controller's dir 0 means exhaust
         self.clock = clock
 
         self.reported = dict.fromkeys(LEAF)  # last value the controller published
         self.wish = {}  # key -> value the user asked for and the fan has not confirmed yet
         self.inflight = None  # [key, value, deadline, resends left] of the command sent last
         self.echoes = {}  # leaf -> [[payload, expiry], ...] for our own publishes
-        self.lid = None  # belief: 1 open, 0 closed, None unknown
+        self.lid = 0  # belief: 1 open, 0 closed. First start: assumed closed (SETUP.md)
         self.last_lid_motion = None
         self.last_live = None  # last message from the controller (not our echo)
         self.last_sent = None
@@ -116,6 +121,8 @@ class VtWifiFan:
         if value is None:
             log.warning("%s: bad payload %r on %s/%s", self.id, payload, self.prefix, leaf)
             return
+        if key == "dir" and self.dir_swapped:
+            value = 1 - value
         old = self.reported[key]
         self.reported[key] = value
         if not retained and old == 0 and value == 1:
@@ -174,7 +181,7 @@ class VtWifiFan:
             if resends and still_wanted:
                 if quiet:
                     log.info("%s: no confirmation of %s=%s, sending again", self.id, key, value)
-                    self._publish_leaf(LEAF[key], encode(key, value), now)
+                    self._publish_leaf(LEAF[key], self._encode(key, value), now)
                     self.inflight = [key, value, now + self.confirm_s, resends - 1]
                 return
             self.inflight = None
@@ -198,7 +205,7 @@ class VtWifiFan:
                     continue
                 if self.last_lid_motion is not None and now - self.last_lid_motion < self.lid_settle_s:
                     continue  # still travelling; try again on a later tick
-                self._publish_leaf("lid", "1", now)  # unknown position: assume it was the other way
+                self._publish_leaf("lid", "1", now)  # any value toggles the lid
                 self.lid, self.last_lid_motion = target, now
                 del self.wish[key]
                 self._save()
@@ -206,11 +213,16 @@ class VtWifiFan:
             if target == self.reported[key]:
                 del self.wish[key]
                 continue
-            self._publish_leaf(LEAF[key], encode(key, target), now)
+            self._publish_leaf(LEAF[key], self._encode(key, target), now)
             self.inflight = [key, target, now + self.confirm_s, 1 if key in RESENDABLE else 0]
             if key == "on" and target == 1 and self.on_opens_lid is not False:
                 self.last_lid_motion = now
             return
+
+    def _encode(self, key, value):
+        if key == "dir" and self.dir_swapped:
+            value = 1 - value
+        return encode(key, value)
 
     def _publish_leaf(self, leaf, payload, now):
         self.echoes.setdefault(leaf, []).append([payload, now + self.echo_s])

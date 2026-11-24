@@ -106,6 +106,20 @@ def w_resend_toggles(vw):
     vw.RESENDABLE = ("on", "speed", "mode", "dir")
 
 
+def w_resend_auto(vw):
+    vw.RESENDABLE = ("on", "speed", "mode")
+
+
+def w_lid_unknown_at_start(vw):
+    orig = vw.VtWifiFan.__init__
+
+    def init(self, *a, **k):
+        orig(self, *a, **k)
+        if not self.state_file:
+            self.lid = None
+    vw.VtWifiFan.__init__ = init
+
+
 def w_retained_is_alive(vw):
     orig = vw.VtWifiFan.on_message
     vw.VtWifiFan.on_message = lambda self, leaf, payload, retained=False: orig(self, leaf, payload, False)
@@ -238,6 +252,9 @@ def main():
         run_w("WiFi: Auto not left first", w_auto_not_left, w.test_one_command_at_a_time_after_quiet),
         run_w("WiFi: Auto keeps manual wishes", w_auto_keeps_wishes, w.test_selecting_auto_drops_manual_wishes),
         run_w("WiFi: ignore on_opens_lid", w_kw(on_opens_lid=False), w.test_on_opens_lid),
+        run_w("WiFi: Auto resent", w_resend_auto, w.test_auto_is_never_repeated),
+        run_w("WiFi: swap_direction ignored", w_kw(dir_swapped=False), w.test_swap_direction),
+        run_w("WiFi: lid unknown at first start", w_lid_unknown_at_start, w.test_first_start_assumes_lid_closed),
     ]
     results += [
         run_p("presets: speed before leaving Auto", "PRESET_ORDER", ("fan", "lid", "direction", "speed", "mode"),

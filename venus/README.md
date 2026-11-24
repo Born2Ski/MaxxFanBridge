@@ -8,6 +8,9 @@ It is installed and kept up to date as a [SetupHelper](https://github.com/kwindr
 package called **MaxxFanBridge**. SetupHelper's PackageManager puts it back after every Venus OS
 update, installs new versions, and can remove it again.
 
+**First time? Follow [`SETUP.md`](../SETUP.md)**, which goes through everything in order. This
+page is the reference for installing, updating, settings and troubleshooting.
+
 | On the Pi | What |
 |---|---|
 | `/data/MaxxFanBridge` | The package. Replaced as a whole by every update: don't edit anything in here |
@@ -120,7 +123,9 @@ project folder. PackageManager installs any version that differs from the instal
 
 ## Try it without the controllers
 
-On the Pi, pretend to be the Keuken fan's controller:
+Only **before** the controllers are set up, and clean up afterwards (last line): a retained value
+left on the broker is handed to a controller as a command when it connects. On the Pi, pretend to
+be the Keuken fan's controller:
 
 ```sh
 mosquitto_pub -r -t maxxfan/fan1/vt/speed -m 4       # retained state: shown, still disconnected
@@ -145,8 +150,11 @@ sends it again after 10 seconds, and 10 seconds later shows 40 % again. The card
 | Controller cannot connect to the broker | The security profile may only allow encrypted MQTT. Try the profiles in the order the hardware guide gives |
 | Card shows a value, then jumps back after about 20 s | The controller did not confirm. Check its topic names against `config.ini`; the log says "did not confirm" |
 | Commands sometimes ignored by the controller | Raise `quiet_s` above the controller's Echo suppress; leave its voltage, current and power topics empty |
-| Fan does nothing although the card is connected | Run the bench checks in the hardware guide; check the RJ45 lead has all 8 conductors |
-| Klep (lid) on the card is the wrong way round | Press Open/Close on the ceiling keypad once (hardware guide, "When the screen and the fan disagree") |
+| Fan does nothing although the card is connected | Run the bench checks (`SETUP.md`, step 12); check the RJ45 lead has all 8 conductors |
+| One card keeps going grey and coming back, or the two take turns | `mosquitto_sub -v -t 'maxxfan/+/vt/alive'` should show both fans once a minute. If only one at a time, the controllers are pushing each other off the broker (same login name): ask VanTurtle |
+| Keuken card moves the Bed fan | The topics went into the wrong controller: fix them on the controllers' MQTT pages (`fan1` in Keuken's) |
+| Richting always the wrong way round, also right after a power cut | `swap_direction = yes` under that fan in `config.ini`, then restart the driver |
+| Klep (lid) on the card is the wrong way round | Press Open/Close on the ceiling keypad once (hardware guide, "When the screen and the fan disagree"). After a reinstall or a deleted `state-*.json`, the driver assumes the lid is closed |
 | No Snelkeuze card | The log names the bad `[preset …]` line; each fan line must be `off`, `off open`, `off closed`, `intake N`, `exhaust N` (N = 10…100), `auto` or `keep`. A running fan cannot have `closed`: closing the lid switches it off |
 | A preset does something other than `config.ini` says | It was changed with *Opslaan als*: look in `/data/setupOptions/MaxxFanBridge/presets.json`; delete the file to go back to `config.ini` |
 | Texts half Dutch, half English | Set the Venus OS display language to Nederlands; `language = nl` under `[gui]` in `config.ini` |

@@ -20,6 +20,9 @@ on the Pi turns that into the switch-pane cards Keuken and Bed.
 Nothing runs from the fans to the Pi. Each fan keeps working from its keypad and remote if
 the Pi, the router or a controller dies.
 
+**Setting it up for the first time: follow [`SETUP.md`](../SETUP.md).** This page is the
+background: what the controller can and can't do, parts, wiring, network and limits.
+
 ## What the screen knows
 
 The controller senses some things and believes others. The driver shows what the controller
@@ -27,19 +30,19 @@ reports, except for the lid, which nothing reports.
 
 | Control | Source | Notes |
 |---|---|---|
-| Fan on/off | **Reported**, sensed by the controller | Probably from the motor current; VanTurtle does not say outright |
-| Speed | **Reported**, 1–10 shown as 10–100 % | Probably from current after the calibration run |
-| Direction | Reported, but VanTurtle calls it "a guess" | The controller toggles In/Out and keeps count |
-| Mode (Manual/Auto) | **Reported**, sensed from the fan's auto line | |
+| Fan on/off | **Reported**, sensed by the controller | From the motor current: VanTurtle's installation guide says calibration lets it detect keypad and remote presses |
+| Speed | **Reported**, 1–10 shown as 10–100 % | Same, from the current measured per speed during calibration |
+| Direction | Reported, but VanTurtle calls it "a guess on the airflow direction, don't trust it" | The controller counts its own In/Out presses. Its MQTT values are "0 = maybe forward, 1 = maybe reverse"; the driver reads 0 as intake, `swap_direction = yes` turns that round |
+| Mode (Manual/Auto) | **Reported** | VanTurtle's web app toggles it; whether MQTT sets it or toggles it is not documented |
 | Lid | **Believed by the driver** | One toggle command, no position report |
 | Auto setpoint | Not offered | Keys can only nudge it |
 
 After a touch, the card shows the new value while the controller works. Commands go out one
 at a time. If the controller has not confirmed one after 10 seconds, the driver sends it once
-more (on/off, speed and mode only; direction and lid are toggles and are never repeated). If
-there is still no confirmation, the card goes back to what the controller last reported. The
-driver never repeats a command after the fan has reported, so it does not fight the keypad or
-the remote.
+more (on/off and speed only; direction, lid and mode are, or may be, toggles, so they are never
+repeated). If there is still no confirmation, the card goes back to what the controller last
+reported. The driver never repeats a command after the fan has reported, so it does not fight
+the keypad or the remote.
 
 ## What you need
 
@@ -60,6 +63,9 @@ the order has not shipped yet, also ask them three things:
    the Venus OS security setting below.
 3. Is the RJ45 lead included, and does the board come with mounting holes or a holder for the
    fan's corner?
+4. What is the password of the controller's **VanTurtle Fan** hotspot (their documentation only
+   says "something like 0000-0000"), and do **two controllers on one MQTT broker** log in under
+   different names? If both used the same name, they would keep pushing each other off.
 
 ## Wiring at each fan
 
@@ -108,8 +114,10 @@ the fan's control board.
 1. *Settings → Integrations → MQTT Access → on.* (The driver itself connects from the Pi and
    needs no password.)
 2. The **network security profile** decides whether a device on the WiFi may use plain MQTT
-   on port 1883, and with which password. Victron's forum reports differ by version, so try in
-   this order and stop at the first that works (the card comes online):
+   on port 1883, and with which password. VanTurtle's documentation shows a single MQTT field,
+   the broker address, and no port, username or password; if the controller's page really has
+   none, only option 3 below works. Victron's forum reports differ by version, so otherwise try
+   in this order and stop at the first that works (the card comes online):
    1. Keep your current profile. If the controller's MQTT page has a password field, enter
       the security profile password (the one Remote Console asks for); the username can be
       anything.
@@ -120,88 +128,23 @@ the fan's control board.
    From a laptop on the same WiFi, `nc -vz <pi-address> 1883` shows whether the port is open
    at all.
 
-## Setting up each controller
+## Setting up the controllers and the bench checks
 
-Do one controller at a time, with the other fan's fuse pulled, so you know which is which.
-Both answer to the same name (`vanturtle-fan.local`), so use their IP addresses.
+Step by step in [`SETUP.md`](../SETUP.md), parts 2 and 3: joining the WiFi (hotspot
+**VanTurtle Fan**, `http://192.168.4.1`), calibration (hold **CALIBRATE** for 3 seconds), the
+MQTT fields with each fan's topics, and the bench checks whose answers go into `config.ini`
+(`on_opens_lid`, `lid_settle_s`, `swap_direction`, `confirm_s`).
 
-1. Join the WiFi network **VanTurtle Fan** with a phone or laptop and open `192.168.4.1`.
-2. Enter the van's WiFi name and password. The controller restarts and joins it. If it cannot,
-   it brings its own network back so you can try again.
-3. Find its new address in the router's list of connected devices and open it in a browser.
-4. Run **calibration** from the web page, if it offers it. The fan opens the lid and runs
-   through its speeds for about a minute. Don't touch the keypad or remote meanwhile.
-5. MQTT settings:
-
-| Controller field | Keuken (fan1) | Bed (fan2) |
-|---|---|---|
-| Broker address | the Pi's fixed address | same |
-| Port / username / password, if offered | 1883 / any / see above | same |
-| On/off | `maxxfan/fan1/vt/on` | `maxxfan/fan2/vt/on` |
-| Speed | `maxxfan/fan1/vt/speed` | `maxxfan/fan2/vt/speed` |
-| Direction | `maxxfan/fan1/vt/dir` | `maxxfan/fan2/vt/dir` |
-| Auto temp | `maxxfan/fan1/vt/auto` | `maxxfan/fan2/vt/auto` |
-| Open/close | `maxxfan/fan1/vt/lid` | `maxxfan/fan2/vt/lid` |
-| Keepalive | `maxxfan/fan1/vt/alive` | `maxxfan/fan2/vt/alive` |
-| Voltage, current, power | leave empty for now | leave empty |
-| Echo suppress | `500` | `500` |
-
-The prefix (`maxxfan/fan1/vt`) must match `topic =` for that fan in `config.ini`; that is the
-default, so normally nothing needs changing there.
-
-Why leave voltage, current and power empty: the controller ignores incoming commands for the
-echo-suppress window after each of its own publishes. The driver therefore sends one command
-at a time, and only after the controller has been quiet for 2 seconds (`quiet_s`). If the
-controller published power every second or two, it would never be quiet. Add them later if
-the bench check below shows commands still arrive promptly; the driver ignores them for now.
-If you raise *Echo suppress* above 1500, raise `quiet_s` in `config.ini` above it too.
-
-## Bench checks
-
-On the Pi, stop the driver (`svc -d /service/dbus-maxxfan-bridge`) and watch the topics:
-
-```sh
-mosquitto_sub -v -t 'maxxfan/#'
-```
-
-1. Within a minute you should see `maxxfan/fan1/vt/alive 1`. Right after the controller
-   connects, it publishes its full state (`on`, `speed`, `dir`, `auto`).
-2. In a second shell, send commands and watch the fan and the topics:
-
-```sh
-mosquitto_pub -t maxxfan/fan1/vt/on -m 1       # fan starts; on → 1 comes back
-mosquitto_pub -t maxxfan/fan1/vt/speed -m 7    # speed → 7 comes back; note how long it takes
-mosquitto_pub -t maxxfan/fan1/vt/dir -m 1      # direction changes?
-mosquitto_pub -t maxxfan/fan1/vt/dir -m 1      # again: does it flip back (toggle) or stay?
-mosquitto_pub -t maxxfan/fan1/vt/lid -m 1      # lid opens or closes; time a full stroke
-mosquitto_pub -t maxxfan/fan1/vt/auto -m 1     # auto → 1 comes back
-mosquitto_pub -t maxxfan/fan1/vt/auto -m 0
-mosquitto_pub -t maxxfan/fan1/vt/on -m 0
-```
-
-3. **Restart test.** Pull and refit the fan's fuse. The controller reconnects and receives its
-   own retained values back. **Nothing should move.** If the direction flips or the lid moves,
-   raise *Echo suppress* (try 1500) and repeat.
-4. Press keys on the ceiling keypad and the handheld remote. Note which topics follow. That is
-   what the card will catch from other sources.
-
-Write down, and put the answers in `/data/setupOptions/MaxxFanBridge/config.ini` on the Pi,
-under both fans:
-
-| Question | Setting |
-|---|---|
-| Does switching on (step 2, first line) open a closed lid by itself? | `on_opens_lid = yes` or `no` |
-| How long is a full lid stroke? Add 2 s | `lid_settle_s` |
-| How long did speed 1 → 7 take before `speed 7` came back? If more than 8 s, set this to that time plus 3 s | `confirm_s` (default 10) |
-
-Start the driver again with `svc -u /service/dbus-maxxfan-bridge`.
+The topic prefix typed into a controller (`maxxfan/fan1/vt`) must match `topic =` for that fan in
+`config.ini`. That is the default, so normally nothing needs changing there. If you ever raise
+*Echo suppress* above 1500, raise `quiet_s` in `config.ini` above it too.
 
 ## When the screen and the fan disagree
 
 | Wrong on screen | Fix |
 |---|---|
 | On/off, speed, mode | Should correct itself within seconds: these are reported. If not, check the topics with `mosquitto_sub` |
-| Direction | Change it on the card twice, or press In/Out on the ceiling keypad once |
+| Direction | Press In/Out on the ceiling keypad once (or change it on the card twice). Wrong every time after a power cut: flip `swap_direction` for that fan in `config.ini` |
 | Lid | Press Open/Close on the ceiling keypad or remote once, so the fan matches the card. Tapping the card does not help: it sends a toggle and the card flips with it |
 
 The lid goes wrong only after someone uses the keypad or remote for the lid, after Auto mode
@@ -215,6 +158,8 @@ on the WiFi. That last one cannot be detected: the lid toggle is never confirmed
   (`archive/README.md`), if it ever matters enough.
 - Needs WiFi that is always on. When it drops, the cards show disconnected after about two and
   a half minutes (no keepalive), and the fans keep working from the keypad and remote.
-- VanTurtle's firmware is closed. Its MQTT behaviour comes from their documentation, not from
-  testing.
+- VanTurtle's firmware is closed. Its MQTT behaviour comes from their
+  [documentation](https://vanturtle.com/vtsc-docs/smart-controller-wifi-firmware/), not from
+  testing. It doesn't say whether two controllers can share one broker; check 4 in `SETUP.md`
+  shows it.
 - The fan beeps on every key press, as it does with its own keypad.

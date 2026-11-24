@@ -740,6 +740,7 @@ def make_vtwifi_fan(section, cfg, bus, instance, publish_raw, clock=None):
         lid_settle_s=cfg.getfloat(section, "lid_settle_s", fallback=12.0),
         confirm_s=cfg.getfloat(section, "confirm_s", fallback=10.0),
         quiet_s=cfg.getfloat(section, "quiet_s", fallback=2.0),
+        dir_swapped=cfg.getboolean(section, "swap_direction", fallback=False),
         **extra)
     fan.publish = lambda _fan_id, key, value: worker.command(key, value)
     return fan, worker

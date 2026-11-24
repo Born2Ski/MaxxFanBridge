@@ -11,7 +11,9 @@ and VRM render them as cards, in Dutch (`[gui] language = nl`).
 
 **The final design (option W, bought):** `backend = vanturtle-wifi`, a VanTurtle Smart Controller
 inside each fan with VanTurtle's closed Advanced WiFi firmware, MQTT to the Venus OS broker.
-Owner docs: `README.md`, `hardware/vanturtle-smart-controller.md`, `venus/README.md`, `docs/ui.md`.
+Owner docs: `SETUP.md` (first-time setup step by step, with the bench checks), `README.md`,
+`hardware/vanturtle-smart-controller.md` (background), `venus/README.md` (install/update reference,
+troubleshooting), `docs/ui.md`.
 
 **Keep the owner docs about the final design only.** Everything for hardware that was worked out
 but not chosen lives in `archive/` (docs, ESPHome firmware, C++ tests; `archive/README.md` has the
@@ -20,7 +22,8 @@ comparison). The driver still contains those backends, with tests, chosen per fa
 I2C pins), `mqtt` (A/C: own ESPHome firmware).
 
 **Nothing has run on real hardware yet.** Unverified assumptions are tracked in the README table
-"Things I could not verify from here", and each hardware doc ends in bench checks. When code relies
+"Things I could not verify from here"; the bench checks for option W are step 12 of `SETUP.md`
+(archived hardware docs end in their own). When code relies
 on a new assumption about the fans, VanTurtle firmware or Venus OS, add a row there.
 
 ## Commands
@@ -96,9 +99,11 @@ Runs on Venus OS's Python: standard library + Victron's `velib_python` (`vedbus`
 - `vtwifi.py` (option W): the controller uses one retained topic per field for state *and* commands.
   So: drop our own echoes; a touch becomes a *wish* shown until the controller reports it; **one
   command in flight**, sent only after `quiet_s` of controller silence (its echo-suppress window drops
-  everything); absolute commands resent once, toggles (`dir`, `lid`) never; never re-send after a
-  report (don't fight the keypad); leave Auto first; lid is a persisted belief; online = a live
-  (non-retained) message within 150 s.
+  everything); `on` and `speed` resent once, `dir`, `lid` and `auto` never (toggles, or maybe:
+  VanTurtle documents neither); never re-send after a report (don't fight the keypad); leave Auto
+  first; lid is a persisted belief, assumed closed on the first start; online = a live
+  (non-retained) message within 150 s. `swap_direction` flips dir 0/1 (VanTurtle: "0 = maybe
+  forward"). Source: https://vanturtle.com/vtsc-docs/smart-controller-wifi-firmware/
 - **Closing the lid switches the fan off** (owner's rule): `Fan._stop_before_closing` sends `on 0`
   before every `lid 0`, from the GUI and from presets, for every backend; opening the lid starts
   nothing. Presets therefore refuse `intake/exhaust N closed`.

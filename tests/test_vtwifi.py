@@ -2,8 +2,8 @@
 
 The simulated controller behaves as VanTurtle documents its WiFi firmware: one retained topic
 per field in both directions, full state on connect, a keepalive, an echo-suppress window
-after each of its own publishes, and a lid that only toggles. Direction is run both as a
-toggle and as an absolute value, since VanTurtle does not say which it is.
+after each of its own publishes, and a lid that only toggles. Direction and Auto are run both
+as a toggle and as an absolute value, since VanTurtle does not say which they are.
 
     python3 tests/test_vtwifi.py
 """
@@ -64,10 +64,11 @@ class SimController:
     """The VanTurtle Smart Controller with WiFi firmware, and the fan behind it."""
 
     def __init__(self, broker, clock, on=0, speed=3, direction=0, auto=0, lid=0,
-                 dir_toggles=True, on_opens_lid=False, suppress_s=0.5, report_steps=False):
+                 dir_toggles=True, auto_toggles=False, on_opens_lid=False, suppress_s=0.5,
+                 report_steps=False):
         self.b, self.clock = broker, clock
         self.on, self.speed, self.dir, self.auto, self.lid = on, speed, direction, auto, lid
-        self.dir_toggles, self.on_opens_lid = dir_toggles, on_opens_lid
+        self.dir_toggles, self.auto_toggles, self.on_opens_lid = dir_toggles, auto_toggles, on_opens_lid
         self.suppress_s, self.report_steps = suppress_s, report_steps
         self.last_pub = None
         self.drop_next = 0  # commands lost, as if the WiFi dropped them
@@ -119,7 +120,7 @@ class SimController:
         elif leaf == "on":
             self.set_on(int(payload))
         elif leaf == "auto":
-            self.set_auto(int(payload))
+            self.set_auto(self.auto ^ 1 if self.auto_toggles else int(payload))
 
     # also what the ceiling keypad does
     def set_on(self, value):
@@ -249,6 +250,51 @@ def test_toggles_are_never_repeated():
         r.touch("dir", 0)
         r.run(30)
         assert r.sim.dir == 0 and r.shown["dir"] == 0, (toggles, r.drv())
+
+
+def test_auto_is_never_repeated():
+    """VanTurtle's web app toggles Auto, and the MQTT docs do not say. A repeat could undo it."""
+    for toggles in (True, False):
+        r = Rig(sim_kw=dict(on=0, auto=0, auto_toggles=toggles))
+        r.run(60)
+        r.sim.drop_next = 1
+        r.touch("mode", 1)
+        r.run(25)
+        assert r.drv() == [("auto", "1")], (toggles, r.drv())
+        assert r.shown["mode"] == 0 == r.sim.auto, "screen back to the controller's report"
+        r.touch("mode", 1)
+        r.run(5)
+        assert r.sim.auto == 1 and r.shown["mode"] == 1
+        r.touch("mode", 0)
+        r.run(5)
+        assert r.sim.auto == 0 and r.shown["mode"] == 0, (toggles, r.drv())
+
+
+def test_swap_direction():
+    """swap_direction = yes: the controller's dir 0 is shown and sent as exhaust (1)."""
+    for toggles in (True, False):
+        r = Rig(sim_kw=dict(on=1, direction=0, dir_toggles=toggles), fan_kw=dict(dir_swapped=True))
+        assert r.shown["dir"] == 1, "controller 0 shows as exhaust"
+        r.run(60)
+        r.touch("dir", 0)
+        r.run(5)
+        assert r.sim.dir == 1 and r.shown["dir"] == 0, (toggles, r.drv())
+        assert r.drv() == [("dir", "1")], "sent in the controller's terms"
+        assert r.fan.wish == {} and r.fan.inflight is None, "confirmed"
+
+
+def test_first_start_assumes_lid_closed():
+    """No state file yet: the lid counts as closed (SETUP.md has the owner close it before the
+    first start), so a preset's "closed" sends nothing and "open" sends one toggle."""
+    r = Rig(sim_kw=dict(lid=0), fan_kw=dict(lid_settle_s=0))
+    r.run(60)
+    assert r.shown.get("lid") == 0, "the card shows closed"
+    r.fan.command("lid", 0)  # what a preset does; the GUI only writes changes
+    r.run(5)
+    assert r.sim.lid == 0 and ("lid", "1") not in r.drv(), "closing a closed lid must not toggle it"
+    r.touch("lid", 1)
+    r.run(5)
+    assert r.sim.lid == 1 and r.shown["lid"] == 1
 
 
 def test_one_command_at_a_time_after_quiet():
@@ -390,8 +436,8 @@ def test_random_sequences():
                      auto=rnd.randint(0, 1), lid=rnd.randint(0, 1))
         opens = rnd.random() < 0.5
         lossy = rnd.random() < 0.5
-        r = Rig(sim_kw=dict(start, dir_toggles=rnd.random() < 0.5, on_opens_lid=opens,
-                            report_steps=rnd.random() < 0.5),
+        r = Rig(sim_kw=dict(start, dir_toggles=rnd.random() < 0.5, auto_toggles=rnd.random() < 0.5,
+                            on_opens_lid=opens, report_steps=rnd.random() < 0.5),
                 fan_kw=dict(on_opens_lid=opens, lid_settle_s=rnd.choice((0, 12))))
         r.fan.lid = start["lid"]
         r.run(60)
@@ -434,7 +480,8 @@ def test_driver_integration():
     cfg = configparser.ConfigParser(inline_comment_prefixes=(";", "#"))
     cfg.read_string("[fan1]\nname = Galley fan\nbackend = vanturtle-wifi\n"
                     "on_opens_lid = yes\nlid_settle_s = 15\n"
-                    "[fan2]\nbackend = vanturtle-wifi\ntopic = van/roof/   ; trailing slash\n")
+                    "[fan2]\nbackend = vanturtle-wifi\ntopic = van/roof/   ; trailing slash\n"
+                    "swap_direction = yes\n")
     sent, clock = [], Clock()
     client = types.SimpleNamespace(publish=lambda t, p, qos=0: sent.append((t, p, qos)),
                                    subscribe=lambda topics: sent.append(("SUB", topics, 0)))
@@ -448,6 +495,7 @@ def test_driver_integration():
 
     assert worker.prefix == "maxxfan/fan1/vt" and worker2.prefix == "van/roof"
     assert worker.on_opens_lid is True and worker.lid_settle_s == 15 and worker2.on_opens_lid is None
+    assert worker.dir_swapped is False and worker2.dir_swapped is True
     assert svc["/Mgmt/Connection"] == "VanTurtle WiFi maxxfan/fan1/vt"
     assert not any("setpoint" in p for p in svc.paths), "no setpoint on VanTurtle fans"
     bridge._on_connect(client)

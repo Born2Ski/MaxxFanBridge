@@ -5,8 +5,11 @@ switch pane of Venus OS's new UI (gui-v2): a Raspberry Pi 3B with the official 7
 running Venus OS 3.85. The same cards appear in Remote Console and VRM.
 
 **Status: design + first-draft code. Nothing here has met a fan yet.** The driver is tested on
-a desktop against stand-ins for D-Bus, MQTT and the VanTurtle controller (`tests/`). The bench
-checks in the hardware guide come before installing.
+a desktop against stand-ins for D-Bus, MQTT and the VanTurtle controller (`tests/`).
+
+**Setting up for the first time: follow [`SETUP.md`](SETUP.md)**, step by step from the Pi to
+both fans, with a check after each part and the bench checks that settle what VanTurtle doesn't
+document.
 
 ## How it works
 
@@ -57,20 +60,21 @@ Three cards, in Dutch (`[gui] language = nl` in `config.ini`), here just after t
 
 ## Build order
 
-All hardware steps are in `hardware/vanturtle-smart-controller.md`.
+All steps, in order and with a check after each part, are in [`SETUP.md`](SETUP.md):
 
-1. Give the Pi a fixed address on the van's 2.4 GHz WiFi, and turn on MQTT access in Venus OS.
-2. Install SetupHelper, then the MaxxFanBridge package from a USB stick (`venus/README.md`).
+1. **The Pi**: fixed address on the van's 2.4 GHz WiFi, MQTT access, SetupHelper, this package.
    The cards appear and wait for the controllers.
-3. Fit the Keuken fan's controller, join it to the WiFi, type in its topics, and run the bench
-   checks; put the three settings they ask about in `config.ini` on the Pi. Then the Bed fan.
-4. Try the cards and the presets on the touchscreen.
+2. **Keuken**: fit the controller, put it on the WiFi, calibrate, type in its topics, run the
+   bench checks, put the answers in `config.ini`.
+3. **Bed**: the same with `fan2`.
+4. **Both together**, then the presets.
 
 ## What is where
 
 | Path | What |
 |---|---|
-| `hardware/vanturtle-smart-controller.md` | What you need, wiring in the fan, WiFi and Venus OS settings, controller setup, bench checks |
+| `SETUP.md` | **First-time setup, step by step**, including the bench checks and what to expect on first use |
+| `hardware/vanturtle-smart-controller.md` | Background: what the controller senses, what you need, wiring in the fan, network and Venus OS security, limits |
 | `venus/README.md` | Installing and updating with SetupHelper, your settings, trying it without hardware, troubleshooting |
 | `venus/dbus-maxxfan-bridge/` | The driver, and `config.default.ini`: the settings a fresh install starts from (fan names, language, presets). On the Pi you edit `/data/setupOptions/MaxxFanBridge/config.ini` |
 | `setup`, `version`, `firstCompatibleVersion`, `AUTO_INSTALL`, `services/` | What makes this folder a SetupHelper package. Raise `version` for every release |
@@ -84,12 +88,16 @@ All hardware steps are in `hardware/vanturtle-smart-controller.md`.
 
 | Assumption | Source | Risk if wrong |
 |---|---|---|
-| Smart Controller MQTT: one topic per field both ways, retained, QoS 1, full state on connect, keepalive every 60 s | VanTurtle WiFi firmware documentation | Adjust `vtwifi.py`; the bench checks show it in minutes |
+| Smart Controller MQTT: one topic per field both ways, QoS 1, full state on connect, keepalive every 60 s, speed 1–10, lid "any value triggers" | VanTurtle WiFi firmware documentation (retained is implied, not stated) | Adjust `vtwifi.py`; the bench checks show it in minutes |
 | Echo suppress ignores *all* incoming messages for its window, not just echoes | Inferred from VanTurtle's description | If it only ignores echoes, the driver is just a little slower than needed |
-| Whether MQTT direction is absolute or a toggle | Not documented | Driver works either way; never repeats it |
-| The controller senses on/off and speed (from current), not just believes them | Calibration run suggests it; not stated | On/off and speed would drift like the lid after keypad use |
+| Whether MQTT direction is absolute or a toggle | Not documented (REST and web app toggle) | Driver works either way; never repeats it |
+| Which way MQTT direction 0 and 1 are | VanTurtle: "0 = maybe forward, 1 = maybe reverse"; the driver reads 0 as intake | Richting shown the wrong way round: `swap_direction = yes` (bench check 12d) |
+| Whether MQTT Auto temp is absolute or a toggle | Not documented; the web app's button toggles | Driver works either way; never repeats it |
+| Two controllers can be connected to one broker at the same time (different MQTT client names) | Not documented | They push each other off; cards flicker. Check 4 in `SETUP.md` shows it; only VanTurtle can fix it |
+| Hotspot password of a new controller | VanTurtle: "something like 0000-0000" | Ask VanTurtle |
+| The controller senses on/off and speed (from current), not just believes them | VanTurtle's installation guide: calibration lets it "detect changes made through the fan's original button panel or IR remote" | On/off and speed would drift like the lid after keypad use |
 | Manual keys do nothing while the fan is in Auto | Assumption | Driver leaves Auto first anyway |
-| WiFi firmware offers MQTT username/password and port fields | Not documented ("fill in at least the broker address") | Without them, the Venus OS security profile must be Unsecured |
+| WiFi firmware offers MQTT username/password and port fields | Not documented: the only field mentioned is the broker address | Without them, the Venus OS security profile must be Unsecured |
 | Which security profile opens plain MQTT on 1883 in Venus OS 3.85 | Victron forum posts disagree between versions | Try the order given in the hardware guide |
 | Venus OS's broker accepts other topics (`maxxfan/...`) | Read in the dbus-flashmq source | — |
 | The controller's lid open/close works on the 7000K/7500K | VanTurtle offers it; it presses Faster+Slower, which only "some models" accept | Lid not controllable from the screen; the bench check shows it |
@@ -99,6 +107,7 @@ All hardware steps are in `hardware/vanturtle-smart-controller.md`.
 | gui-v2 shows our Dutch names as given and draws Aan/Uit and menus in the Venus OS language | gui-v2 behaviour | Some texts in English until the Venus OS language is Nederlands |
 | SetupHelper's PackageManager installs from a USB stick, honours `AUTO_INSTALL` and reinstalls after Venus OS updates without its menus (classic UI only) | Read in SetupHelper v9.7's source | Run `/data/MaxxFanBridge/setup install` over SSH |
 | Venus OS 3.85 still includes python3 paho-mqtt | Not checked | The install says so; copy paho into the settings folder (`venus/README.md`) |
+| Venus OS 3.85 includes `mosquitto_sub` / `mosquitto_pub` | Not checked | Run them from a laptop with `-h <pi-address>` |
 
 ## Tests
 

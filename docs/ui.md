@@ -53,11 +53,12 @@ How the cards behave:
 - **Right after a touch** the card shows the new value. It stays there until the controller
   reports the fan got there; commands go out one at a time, after the controller has been
   quiet for 2 seconds.
-- **Not confirmed**: on/off, speed and mode are sent once more after 10 s (direction and lid
-  are toggles and never repeated). After 20 s the card shows the controller's last report again.
+- **Not confirmed**: on/off and speed are sent once more after 10 s (direction, lid and mode
+  are, or may be, toggles and are never repeated). After 20 s the card shows the controller's
+  last report again.
 - **Keypad or remote used**: Ventilator, Snelheid and Modus follow within a second, because the
   controller reports them. Richting is the controller's guess. Klep stays as the driver
-  believes it.
+  believes it; on the very first start (no `state-*.json` yet) that is "closed".
 - **Klep dicht switches the fan off.** Closing the lid first sends "fan off", then closes it,
   so the fan never runs against a closed lid. "Off" is sent even when the card already shows
   the fan off, in case the keypad started it. **Klep open only opens**: the fan stays as it is.
