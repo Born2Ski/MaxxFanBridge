@@ -92,7 +92,7 @@ TEXTS = {
            "mode_labels": ["Manual", "Auto"], "save": "Save as", "presets": "Fan presets"},
     "nl": {"fan": "Ventilator", "speed": "Snelheid", "direction": "Richting", "lid": "Klep open",
            "mode": "Modus", "setpoint": "Thermostaat", "direction_labels": ["Inblazen", "Afzuigen"],
-           "mode_labels": ["Handmatig", "Automatisch"], "save": "Opslaan als", "presets": "Snelkeuze"},
+           "mode_labels": ["Handmatig", "Automatisch"], "save": "Opslaan als", "presets": "Alle fans"},
 }
 
 

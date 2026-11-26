@@ -1,6 +1,6 @@
 # First-time setup, step by step
 
-From two boxed controllers to working Keuken, Bed and Snelkeuze cards on the touchscreen.
+From two boxed controllers to working Alle fans, Bed and Keuken cards on the touchscreen.
 
 The order matters: first the Pi (no fans involved), then the Keuken fan completely, then the Bed
 fan, then both together. Every part ends with a **check**. Don't go on until it passes; the
@@ -104,8 +104,8 @@ The last line makes the Pi look for a new version once a day, whenever it has in
 
 ### ✅ Check 1: the cards are there
 
-- Tap the switch icon in the top bar of the touchscreen. Three cards: **Keuken** and **Bed**
-  (greyed out: no controllers yet, that's expected) and **Snelkeuze**.
+- Tap the switch icon in the top bar of the touchscreen. Three cards: **Alle fans**, then
+  **Bed** and **Keuken** (greyed out: no controllers yet, that's expected).
 - If not: `svstat /service/dbus-maxxfan-bridge` should say `up`, and
   `tail /var/log/dbus-maxxfan-bridge/current | tai64nlocal` says what is wrong. An install
   refused for "paho-mqtt is missing" has its own row in the troubleshooting table.
@@ -342,7 +342,7 @@ Then check 3 on the **Bed** card.
 2. The Keuken card must move the **Keuken** fan and the Bed card the **Bed** fan. If they're
    swapped, the topics went into the wrong controller: correct them on the controllers' MQTT
    pages.
-3. **Snelkeuze → Koken**: Keuken blows out at 80 %, Bed blows in at 30 %, both lids open. Then
+3. **Alle fans → Koken**: Keuken blows out at 80 %, Bed blows in at 30 %, both lids open. Then
    **Rijden**: both fans stop and both lids close.
 
 That's it: the setup is done.
@@ -367,7 +367,7 @@ That's it: the setup is done.
 - **A greyed-out card** means no contact with that controller for 2½ minutes: WiFi down, or the
   fan without power. The fan works from its keypad and remote meanwhile, and the card comes back
   by itself.
-- **Snelkeuze**: one tap sets both fans, and the lit preset shows what is active. It goes dark when
+- **Alle fans**: one tap sets both fans, and the lit preset shows what is active. It goes dark when
   someone changes a fan afterwards. **Opslaan als** stores what the fan cards show now into a
   preset.
 - **Names, order, hiding a control**: the switch pane's edit mode. Preset contents: *Opslaan als*,

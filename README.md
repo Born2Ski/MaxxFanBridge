@@ -38,17 +38,18 @@ document.
 Three cards, in Dutch (`[gui] language = nl` in `config.ini`), here just after tapping Koken:
 
 ```
-┌──── Snelkeuze ────┐  ┌──────────── Keuken ────────────┐  ┌───────────── Bed ──────────────┐
+┌──── Alle fans ────┐  ┌────────────── Bed ─────────────┐  ┌──────────── Keuken ────────────┐
 │ Koken      [ Aan ]│  │ Ventilator              [ Aan ]│  │ Ventilator              [ Aan ]│
-│ Slapen     [ Uit ]│  │ Snelheid   ─────●─────    80 % │  │ Snelheid   ──●────────    30 % │
-│ Rijden     [ Uit ]│  │ Richting       [ Afzuigen  ▾ ] │  │ Richting       [ Inblazen  ▾ ] │
+│ Slapen     [ Uit ]│  │ Snelheid   ──●────────    30 % │  │ Snelheid   ─────●─────    80 % │
+│ Rijden     [ Uit ]│  │ Richting       [ Inblazen  ▾ ] │  │ Richting       [ Afzuigen  ▾ ] │
 │ Standaard  [ Uit ]│  │ Klep open               [ Aan ]│  │ Klep open               [ Aan ]│
 │ Opslaan als [— ▾] │  │ Modus          [ Handmatig ▾ ] │  │ Modus          [ Handmatig ▾ ] │
 └───────────────────┘  └────────────────────────────────┘  └────────────────────────────────┘
 ```
 
-- **Snelkeuze** sets both fans with one tap: Koken, Slapen, Rijden, Standaard. *Opslaan als*
-  stores the fans as they are into a preset. Contents are in `config.ini`.
+- **Alle fans** sets both fans with one tap: Koken, Slapen, Rijden, Standaard. *Opslaan als*
+  stores the fans as they are into a preset. Contents are in `config.ini`. gui-v2 sorts the
+  cards alphabetically by title, which is what puts this card on the left.
 - **Klep open** off switches the fan off first; switching it on only opens the lid, the fan
   stays off until you switch it on.
 - What a card can trust: Ventilator, Snelheid and Modus are reported by the controller, so they

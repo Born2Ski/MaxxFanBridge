@@ -82,6 +82,9 @@ def test_shipped_config():
     cfg = shipped_config()
     fans = [s for s in cfg.sections() if s not in ("mqtt", "presets", "gui") and not s.startswith("preset ")]
     assert fans == ["fan1", "fan2"]
+    # gui-v2 sorts the switch-pane cards by title; the owner wants the presets card on the left.
+    titles = [cfg.get(s, "name") for s in fans]
+    assert all(cfg.get("presets", "name").casefold() < t.casefold() for t in titles), titles
 
 
 def test_config_errors():

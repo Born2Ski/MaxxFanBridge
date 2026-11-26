@@ -38,7 +38,7 @@
     "about": {
       "fill": "blue",
       "size": 24,
-      "text": "An approximation of the gui-v2 switch pane at the official display's 800×480, not a pixel copy of Victron's screen, with the card texts in Dutch ([gui] language = nl). The cards are what dbus-maxxfan-bridge creates for the VanTurtle Smart Controllers: Snelkeuze (presets), and one card per fan, Keuken and Bed, with five rows and no setpoint. Aan/Uit, menus and the pane title come from gui-v2 in the Venus OS language. Where gui-v2 places the Snelkeuze card among the others is up to gui-v2.",
+      "text": "An approximation of the gui-v2 switch pane at the official display's 800×480, not a pixel copy of Victron's screen, with the card texts in Dutch ([gui] language = nl). The cards are what dbus-maxxfan-bridge creates for the VanTurtle Smart Controllers: Alle fans (presets), and one card per fan, Keuken and Bed, with five rows and no setpoint. Aan/Uit, menus and the pane title come from gui-v2 in the Venus OS language. gui-v2 sorts the cards alphabetically by title, so on the device the order is Alle fans, Bed, Keuken.",
       "w": 520,
       "x": 0,
       "y": 560

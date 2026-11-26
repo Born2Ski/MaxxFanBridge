@@ -261,7 +261,7 @@ def check_dutch_cards(d):
     assert svc[out + "direction/Settings/Labels"] == ["Inblazen", "Afzuigen"]
     assert svc[out + "mode/Settings/Labels"] == ["Handmatig", "Automatisch"]
     presets = d.Presets([("cooking", "Koken", {"fan1": None})], {"fan1": fan}, None, language="nl")
-    assert presets.svc["/CustomName"] == "Snelkeuze" and presets.svc[out + "save/Name"] == "Opslaan als"
+    assert presets.svc["/CustomName"] == "Alle fans" and presets.svc[out + "save/Name"] == "Opslaan als"
     for t in d.TEXTS.values():  # every language has every text
         assert set(t) == set(d.TEXTS["en"])
     cfg.read_string("[gui]\nlanguage = fr\n")

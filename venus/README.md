@@ -1,7 +1,7 @@
 # Installing on the Pi (Venus OS)
 
 The driver `dbus-maxxfan-bridge` runs on the Raspberry Pi and creates the three switch-pane
-cards: Keuken, Bed and Snelkeuze. It talks to the two VanTurtle Smart Controllers through the
+cards: Alle fans, Bed and Keuken. It talks to the two VanTurtle Smart Controllers through the
 MQTT broker built into Venus OS.
 
 It is installed and kept up to date as a [SetupHelper](https://github.com/kwindrem/SetupHelper)
@@ -93,6 +93,22 @@ svc -t /service/dbus-maxxfan-bridge
 To start again from the defaults, delete that `config.ini` and restart: the driver writes a
 fresh one.
 
+**Card titles are kept by Venus OS**, not read from `config.ini` each time: the `name =` lines
+only set a card's title when the card first appears. To rename a card later, use the switch
+pane's edit mode, or over SSH (here the presets card, to `Alle fans`):
+
+```sh
+for k in $(sed -n 's/^\[preset \([a-z0-9_]*\)\]/\1/p' /data/setupOptions/MaxxFanBridge/config.ini) save; do
+  dbus-send --system --print-reply --dest=com.victronenergy.switch.maxxfan_presets \
+    /SwitchableOutput/$k/Settings/Group com.victronenergy.BusItem.SetValue variant:string:"Alle fans"
+done
+dbus-send --system --print-reply --dest=com.victronenergy.switch.maxxfan_presets \
+  /CustomName com.victronenergy.BusItem.SetValue variant:string:"Alle fans"
+```
+
+For a fan card, use `com.victronenergy.switch.maxxfan_fan1` (or `fan2`) and the controls
+`fan speed direction lid mode`. gui-v2 sorts the cards alphabetically by title.
+
 ## Updates
 
 A new version of this project has a higher number in the `version` file at the top of the
@@ -155,7 +171,7 @@ sends it again after 10 seconds, and 10 seconds later shows 40 % again. The card
 | Keuken card moves the Bed fan | The topics went into the wrong controller: fix them on the controllers' MQTT pages (`fan1` in Keuken's) |
 | Richting always the wrong way round, also right after a power cut | `swap_direction = yes` under that fan in `config.ini`, then restart the driver |
 | Klep (lid) on the card is the wrong way round | Press Open/Close on the ceiling keypad once (hardware guide, "When the screen and the fan disagree"). After a reinstall or a deleted `state-*.json`, the driver assumes the lid is closed |
-| No Snelkeuze card | The log names the bad `[preset …]` line; each fan line must be `off`, `off open`, `off closed`, `intake N`, `exhaust N` (N = 10…100), `auto` or `keep`. A running fan cannot have `closed`: closing the lid switches it off |
+| No Alle fans card | The log names the bad `[preset …]` line; each fan line must be `off`, `off open`, `off closed`, `intake N`, `exhaust N` (N = 10…100), `auto` or `keep`. A running fan cannot have `closed`: closing the lid switches it off |
 | A preset does something other than `config.ini` says | It was changed with *Opslaan als*: look in `/data/setupOptions/MaxxFanBridge/presets.json`; delete the file to go back to `config.ini` |
 | Texts half Dutch, half English | Set the Venus OS display language to Nederlands; `language = nl` under `[gui]` in `config.ini` |
 | A slider or dropdown looks wrong | Change that control's type in the switch pane's edit mode, or set `/SwitchableOutput/<key>/Settings/Type` (speed accepts 2 or 7) |

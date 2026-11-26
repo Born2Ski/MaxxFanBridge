@@ -110,6 +110,10 @@ Runs on Venus OS's Python: standard library + Victron's `velib_python` (`vedbus`
 - Presets: `[preset <key>]` sections, one line per fan (`exhaust 80`, `off closed`, `auto`, `keep`…,
   `parse_target`). Applied through `Fan.command`, which behaves like a GUI touch. *Save as* writes
   only that preset to `presets.json`, which overrides `config.ini`.
+- Card order: gui-v2 sorts switch-pane cards alphabetically by title (`SortedIOChannelGroupModel`),
+  nothing else. The presets card is "Alle fans" so it comes first (owner's wish; test_presets
+  checks). A card's title is its outputs' `Settings/Group`, persisted in localsettings when the
+  card first appears, so a later `name =` change in config.ini does not rename an existing card.
 - Card texts: `TEXTS[language]` (`en`, `nl`) and `outputs_in()`; `[gui] language` picks one, default
   `en`. Every language must have every key (test_driver checks). Preset words in `config.ini`
   (`exhaust`, `off`…) and preset keys stay English; only `name =` lines are shown.

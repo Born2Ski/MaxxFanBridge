@@ -71,13 +71,14 @@ How the cards behave:
   remotes.
 - Card title = the fan's name from `config.ini`, changeable in the GUI.
 
-## Presets card: Snelkeuze
+## Presets card: Alle fans
 
-A third card sets both fans with one tap. Its buttons and their contents come from the
+A third card sets both fans with one tap. gui-v2 sorts the cards alphabetically by title, so
+*Alle fans* comes first, left of Bed and Keuken. Its buttons and their contents come from the
 `[preset …]` sections in `config.ini`:
 
 ```
-┌───────── Snelkeuze ─────────┐
+┌───────── Alle fans ─────────┐
 │ Koken                [ Uit ]│
 │ Slapen               [ Uit ]│
 │ Rijden               [ Aan ]│     ← lit: the fans are as Rijden set them
@@ -104,7 +105,7 @@ These are starting points; change them in `config.ini`, or on the screen with *O
   menu then goes back to "—". Saved presets live in `presets.json` and win over `config.ini`.
 - A fan that is disconnected is left alone; a preset with no reachable fan is refused.
 - Rename a preset, or hide *Opslaan als*, in the switch pane's edit mode like any other
-  control. Where gui-v2 places the card among the others is up to gui-v2.
+  control. gui-v2 has no way to reorder cards other than their titles.
 
 Each fan line in a preset is one of: `off` (lid left as it is), `off open`, `off closed`,
 `intake 30` / `exhaust 70` (running, lid opens), `auto`, or `keep` (fan not touched; also when
