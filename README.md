@@ -56,6 +56,10 @@ Three cards, in Dutch (`[gui] language = nl` in `config.ini`), here just after t
   follow the ceiling keypad and the remote too. Richting is the controller's guess. Klep (the
   lid) is believed by the driver: if it shows the wrong way, press Open/Close on the ceiling
   keypad once.
+- **Plugin card** (Venus OS with gui-v2 1.4.6 or later): one *Alle fans* card with an icon per
+  preset, the active one lit (Aangepast when none is), and Bed › / Keuken › rows that open each
+  fan's page. It is installed with the package and appears by itself once gui-v2 can load it;
+  `cards = plugin` in `config.ini` then hides the switch cards above. See `docs/ui.md`.
 - Details: `docs/ui.md`. Interactive design at 800×480: [MaxxFan switch pane](https://claude.ai/artifact/URemBE8xJgGaqg2khCpj6J)
   (local copy in `docs/gui-mockup/`).
 
@@ -80,6 +84,7 @@ All steps, in order and with a check after each part, are in [`SETUP.md`](SETUP.
 | `venus/dbus-maxxfan-bridge/` | The driver, and `config.default.ini`: the settings a fresh install starts from (fan names, language, presets). On the Pi you edit `/data/setupOptions/MaxxFanBridge/config.ini` |
 | `setup`, `version`, `firstCompatibleVersion`, `AUTO_INSTALL`, `services/` | What makes this folder a SetupHelper package. Raise `version` for every release |
 | `tools/make-package.sh` | Builds the package archive for a USB stick |
+| `gui-plugin/` | The plugin card for gui-v2 1.4.6 and later: QML and icons in `MaxxFanBridge/`, compiled into `MaxxFanBridge.json` by `tools/make-plugin.sh` |
 | `docs/ui.md` | The cards and how they behave |
 | `docs/gui-mockup/` | Local copy of the screen design |
 | `tests/` | Desktop tests of the driver |
@@ -109,6 +114,10 @@ All steps, in order and with a check after each part, are in [`SETUP.md`](SETUP.
 | SetupHelper's PackageManager installs from a USB stick, honours `AUTO_INSTALL` and reinstalls after Venus OS updates without its menus (classic UI only) | Read in SetupHelper v9.7's source | Run `/data/MaxxFanBridge/setup install` over SSH |
 | Venus OS 3.85 still includes python3 paho-mqtt | Not checked | The install says so; copy paho into the settings folder (`venus/README.md`) |
 | Venus OS 3.85 includes `mosquitto_sub` / `mosquitto_pub` | Not checked | Run them from a laptop with `-h <pi-address>` |
+| The plugin card loads in the switch pane with gui-v2 1.4.6 or later, and older gui-v2 ignores it | gui-v2 source and plugin guide, v1.4.6; Victron calls the plugin API unfinished | No card, or the API changes; the switch cards keep working with `cards = native` |
+| Opening a fan's page from a row on a card in the switch pane works | gui-v2 documents it for lists; the card uses the same list item | The rows do nothing; use the switch cards for the details |
+| The plugin card also shows in Remote Console and VRM | gui-v2 1.4.6 loads plugins there over MQTT, if Venus OS publishes them | Only on the touchscreen; keep `cards = native` if you use Remote Console |
+| The plugin card looks as on the desktop test's screenshots | Desktop stand-ins for gui-v2's plugin types (`tests/plugin_stubs`) | Spacing or text size differ on the Pi |
 | Removing the package can delete the cards' settings from Venus OS (`RemoveSettings` on `/Settings/Devices`) | Read in Victron's localsettings source; not tried on a device | After a reinstall the old card titles come back; rename them as in `venus/README.md` |
 
 ## Tests
@@ -118,6 +127,7 @@ python3 tests/test_driver.py        # D-Bus cards, first start with the default 
 python3 tests/test_package.py       # the SetupHelper package and the USB archive
 python3 tests/test_vtwifi.py        # Smart Controller backend against a simulated controller
 python3 tests/test_presets.py       # presets card: apply, light/darken, Opslaan als
+python3 tests/test_plugin.py        # plugin card on a desktop (PySide6), checked against gui-v2's plugin API
 python3 tests/mutation_check.py     # proves the tests catch deliberate mistakes
 ```
 

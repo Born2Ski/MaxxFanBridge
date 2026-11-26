@@ -197,6 +197,7 @@ def main():
     worker.report("mode", 1)  # what the worker posts when it senses auto mode
     assert svc2[out + "mode/Dimming"] == 1
     check_main_with_shipped_config(d)
+    check_plugin_card_support(d)
     print("driver: all checks passed")
 
 
@@ -244,6 +245,44 @@ def check_main_with_shipped_config(d):
     assert sent[0][0] == "CONNECT" and sent[0][1][0] == "127.0.0.1", sent
     assert d.VERSION == open(os.path.join(ROOT, "version")).read().strip().lstrip("v")
     check_dutch_cards(d)
+
+
+def check_plugin_card_support(d):
+    """What the gui-v2 plugin card (gui-plugin/) reads, and [gui] cards = plugin, which hides the
+    switch-pane cards everywhere without losing what the user set for them."""
+    import configparser
+    out = "/SwitchableOutput/"
+    fan = d.Fan("fan1", "Keuken", 60, lambda *a: None, bus=None, keys=d.VANTURTLE_KEYS, language="nl")
+    assert fan.svc["/MaxxFan/Fan"] == 1, "how the plugin finds the fans"
+    presets = d.Presets([("cooking", "Koken", {"fan1": None}), ("drive", "Rijden", {"fan1": None})],
+                        {"fan1": fan}, None, language="nl")
+    assert presets.svc["/MaxxFan/PresetKeys"] == ["cooking", "drive"], "config.ini order"
+    assert presets.svc["/MaxxFan/CustomText"] == "Aangepast"
+    assert "/MaxxFan/Fan" not in presets.svc.paths, "the presets card is not a fan"
+    assert fan.svc[out + "speed/Settings/ShowUIControl"] == 1, "cards shown by default"
+
+    def cards(value):
+        cfg = configparser.ConfigParser()
+        cfg.read_string("[gui]\ncards = %s\n" % value if value else "")
+        return d.cards_hidden(cfg)
+    assert cards(None) is False and cards("native") is False and cards(" Plugin ") is True
+    try:
+        cards("both")
+        raise AssertionError("cards = both accepted")
+    except ValueError as e:
+        assert "native or plugin" in str(e)
+
+    d.CARDS_HIDDEN = True
+    try:
+        hidden = d.Fan("fan2", "Bed", 61, lambda *a: None, bus=None, keys=d.VANTURTLE_KEYS)
+        hidden_presets = d.Presets([("cooking", "Koken", {"fan2": None})], {"fan2": hidden}, None)
+        for svc, keys in ((hidden.svc, d.VANTURTLE_KEYS), (hidden_presets.svc, ("cooking", "save"))):
+            assert all(svc[out + k + "/Settings/ShowUIControl"] == 0 for k in keys), "hidden everywhere"
+        assert hidden.svc.gui_write(out + "lid/Settings/ShowUIControl", 1) is False, "stays hidden"
+        assert hidden.settings["lid_show"] == 1, "what the user chose is kept for cards = native"
+        assert hidden.svc.gui_write(out + "lid/Settings/CustomName", "Klep") is True, "other edits work"
+    finally:
+        d.CARDS_HIDDEN = False
 
 
 def check_dutch_cards(d):

@@ -18,6 +18,7 @@ page is the reference for installing, updating, settings and troubleshooting.
 | `/data/setupOptions/MaxxFanBridge/state-fan1.json`, `presets.json` | The lid memory and presets saved with *Opslaan als* (same folder) |
 | `/var/log/dbus-maxxfan-bridge/current` | The driver's log |
 | `/var/log/PackageManager/current` | SetupHelper's log: installs, updates, errors |
+| `/data/apps/available/MaxxFanBridge`, `/data/apps/enabled/MaxxFanBridge` | The plugin card for gui-v2 1.4.6 and later, put there by the install, removed by the removal |
 
 ## Prerequisites
 
@@ -175,6 +176,8 @@ sends it again after 10 seconds, and 10 seconds later shows 40 % again. The card
 | Richting always the wrong way round, also right after a power cut | `swap_direction = yes` under that fan in `config.ini`, then restart the driver |
 | Klep (lid) on the card is the wrong way round | Press Open/Close on the ceiling keypad once (hardware guide, "When the screen and the fan disagree"). After a reinstall or a deleted `state-*.json`, the driver assumes the lid is closed |
 | No Alle fans card | The log names the bad `[preset …]` line; each fan line must be `off`, `off open`, `off closed`, `intake N`, `exhaust N` (N = 10…100), `auto` or `keep`. A running fan cannot have `closed`: closing the lid switches it off |
+| No plugin card (the one with the preset icons) | It needs gui-v2 1.4.6 or later, which comes with a Venus OS 3.90 beta after beta 15. Older gui-v2 logs "requires GUIv2 >= v1.4.6" and leaves it out. Check that `/data/apps/enabled/MaxxFanBridge/gui-v2/MaxxFanBridge.json` exists |
+| No fan controls at all | `cards = plugin` under `[gui]` in `config.ini` hides the switch-pane cards; if the plugin card can't show, set it back to `native` and restart the driver |
 | A preset does something other than `config.ini` says | It was changed with *Opslaan als*: look in `/data/setupOptions/MaxxFanBridge/presets.json`; delete the file to go back to `config.ini` |
 | Texts half Dutch, half English | Set the Venus OS display language to Nederlands; `language = nl` under `[gui]` in `config.ini` |
 | A slider or dropdown looks wrong | Change that control's type in the switch pane's edit mode, or set `/SwitchableOutput/<key>/Settings/Type` (speed accepts 2 or 7) |

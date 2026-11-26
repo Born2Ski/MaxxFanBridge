@@ -35,6 +35,7 @@ python3 tests/test_driver.py        # Fan service, mqtt backend, I2C wiring, mai
 python3 tests/test_vtwifi.py        # option W backend against a simulated VanTurtle controller
 python3 tests/test_presets.py       # presets card
 python3 tests/test_package.py       # SetupHelper package layout, builds and checks the USB archive
+python3 tests/test_plugin.py        # gui-v2 plugin card: API check, then QML in PySide6 against the driver
 python3 tests/test_vanturtle.py     # archived option V backend against a simulated fan (all start/target states)
 python3 tests/test_vtboard.py       # archived option E: VanTurtle logic through a simulated ESP32 over a lossy link
 python3 tests/mutation_check.py     # plants bugs; every mutant must be caught, the unbroken code must pass
@@ -114,6 +115,26 @@ Runs on Venus OS's Python: standard library + Victron's `velib_python` (`vedbus`
 - Presets: `[preset <key>]` sections, one line per fan (`exhaust 80`, `off closed`, `auto`, `keep`…,
   `parse_target`). Applied through `Fan.command`, which behaves like a GUI touch. *Save as* writes
   only that preset to `presets.json`, which overrides `config.ini`.
+- **gui-v2 plugin card** (`gui-plugin/MaxxFanBridge/`, v2.1; owner's v2 wish): one switch-pane card
+  (`--card ... 2`, needs gui-v2 >= 1.4.6) with preset icon tiles (lit = preset `State` 1; Aangepast
+  lit when none, tap opens `MaxxFanBridge_AllFans.qml` via a hidden `PluginListNavigation.click()`)
+  and a row per fan opening `MaxxFanBridge_Fan.qml`. It finds the driver's services with
+  `PluginDeviceModel` + requiredPaths: `/MaxxFan/Fan` on fans, `/MaxxFan/PresetKeys` (order) and
+  `/MaxxFan/CustomText` on presets; all text comes from D-Bus (Name, Settings/CustomName, Labels).
+  Only `Victron.GuiPlugins` types (rules in gui-v2 `.github/gui-plugins.md`); inline components
+  cannot see outer ids, pass values in. `tools/make-plugin.sh` compiles `gui-plugin/MaxxFanBridge.json`
+  (commit it with `MaxxFanBridge.sources`; test_package checks they match the sources and `version`),
+  using gui-v2's compiler pinned at v1.4.6 and Qt tools from PySide6 in `.build/qtvenv`. `setup`
+  copies it to `/data/apps/available/MaxxFanBridge/gui-v2/` and links `/data/apps/enabled/`.
+  `[gui] cards = plugin` sets every ShowUIControl to 0 (`CARDS_HIDDEN`) and refuses edits of it;
+  the stored setting stays for `native`.
+- Plugin tests: `tests/plugin_api.py` checks every `Plugin*` type and member the QML uses against
+  `tests/plugin_stubs/guiplugins-api.json` (copied from gui-v2 v1.4.6) plus rules (imports, base
+  types, `flat: true` in cards). `tests/test_plugin.py` then runs the QML offscreen in PySide6 with
+  stand-ins in `tests/plugin_stubs/Victron/GuiPlugins` (keep their members within the API list), on a
+  fake bus backed by the real driver services, and saves screenshots in `.build/test-tmp/plugin-*.png`.
+  It re-runs itself in `.build/qtvenv` when PySide6 is missing. `mutation_check.py` plants plugin bugs
+  in a copy (`MAXXFAN_PLUGIN_DIR`).
 - Card order: gui-v2 sorts switch-pane cards alphabetically by title (`SortedIOChannelGroupModel`),
   nothing else. The presets card is "Alle fans" so it comes first (owner's wish; test_presets
   checks). A card's title is its outputs' `Settings/Group`, persisted in localsettings when the

@@ -52,6 +52,9 @@ from vedbus import VeDbusService  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = HERE  # main() may point it elsewhere (--data-dir)
+# [gui] cards = plugin: the MaxxFanBridge gui-v2 plugin card (gui-plugin/) replaces the switch-pane
+# cards, so every control says ShowUIControl 0 (hidden everywhere); the stored setting is kept.
+CARDS_HIDDEN = False
 
 
 def package_version():
@@ -89,10 +92,12 @@ VANTURTLE_KEYS = ("fan", "speed", "direction", "lid", "mode")  # keys cannot set
 TEXTS = {
     "en": {"fan": "Fan", "speed": "Speed", "direction": "Direction", "lid": "Lid", "mode": "Mode",
            "setpoint": "Auto setpoint", "direction_labels": ["Intake", "Exhaust"],
-           "mode_labels": ["Manual", "Auto"], "save": "Save as", "presets": "Fan presets"},
+           "mode_labels": ["Manual", "Auto"], "save": "Save as", "presets": "Fan presets",
+           "custom": "Custom"},
     "nl": {"fan": "Ventilator", "speed": "Snelheid", "direction": "Richting", "lid": "Klep open",
            "mode": "Modus", "setpoint": "Thermostaat", "direction_labels": ["Inblazen", "Afzuigen"],
-           "mode_labels": ["Handmatig", "Automatisch"], "save": "Opslaan als", "presets": "Alle fans"},
+           "mode_labels": ["Handmatig", "Automatisch"], "save": "Opslaan als", "presets": "Alle fans",
+           "custom": "Aangepast"},
 }
 
 
@@ -174,8 +179,8 @@ def switch_service(bus, service_name, base, name, instance, outputs, on_write, c
                      onchangecallback=on_write)
         svc.add_path(p + "Settings/Group", settings[key + "_group"], writeable=True,
                      onchangecallback=on_write)
-        svc.add_path(p + "Settings/ShowUIControl", settings[key + "_show"], writeable=True,
-                     onchangecallback=on_write)
+        svc.add_path(p + "Settings/ShowUIControl", 0 if CARDS_HIDDEN else settings[key + "_show"],
+                     writeable=True, onchangecallback=on_write)
         if dim:
             low, high, step, unit = dim
             svc.add_path(p + "Dimming", low, writeable=True, onchangecallback=on_write)
@@ -195,6 +200,8 @@ def write_setting(settings, key, sub, value, valid):
     name = sub[len("Settings/"):]
     if name == "Type" and value not in valid:
         return False
+    if name == "ShowUIControl" and CARDS_HIDDEN:
+        return False  # hidden for the plugin card; [gui] cards = native shows them again
     settings[key + "_" + PERSISTED[name]] = value
     return True
 
@@ -219,6 +226,7 @@ class Fan:
         # Ceiling temperature (option C nodes) is shown next to the setpoint by the GUI.
         if "setpoint" in keys:
             self.svc.add_path("/SwitchableOutput/setpoint/Measurement", None)
+        self.svc.add_path("/MaxxFan/Fan", 1)  # how the gui-v2 plugin card finds the fans
         self.svc.register()
 
     # ---- GUI -> node -------------------------------------------------------
@@ -444,6 +452,10 @@ class Presets:
             "MaxxFan presets", "maxxfan-presets")
         self.svc["/Connected"] = 1
         self.svc["/State"] = MODULE_CONNECTED
+        # For the gui-v2 plugin card: the presets in config.ini order, and the word it shows
+        # when none of them is on.
+        self.svc.add_path("/MaxxFan/PresetKeys", list(self.order))
+        self.svc.add_path("/MaxxFan/CustomText", TEXTS[language]["custom"])
         self.svc.register()
         for fan in fans.values():
             fan.on_touch = self._touched
@@ -650,6 +662,14 @@ def language(cfg):
     return value
 
 
+def cards_hidden(cfg):
+    """[gui] cards: native (the switch-pane cards, default) or plugin (only the plugin card)."""
+    value = cfg.get("gui", "cards", fallback="native").strip().lower()
+    if value not in ("native", "plugin"):
+        raise ValueError("[gui] cards = %r, expected native or plugin" % value)
+    return value == "plugin"
+
+
 def tristate(cfg, section, option):
     """yes / no / anything else (unknown, the default) -> True / False / None."""
     value = cfg.get(section, option, fallback="unknown").strip().lower()
@@ -765,7 +785,7 @@ def prepare_data_dir(data_dir):
 
 
 def main(argv=None):
-    global DATA_DIR
+    global DATA_DIR, CARDS_HIDDEN
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     parser = argparse.ArgumentParser(description="MaxxFan cards for the Venus OS switch pane")
     parser.add_argument("--data-dir", default=HERE,
@@ -782,6 +802,7 @@ def main(argv=None):
         return 1
     try:
         lang = language(cfg)
+        CARDS_HIDDEN = cards_hidden(cfg)
     except ValueError as e:
         log.error("config.ini: %s", e)
         return 1

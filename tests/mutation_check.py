@@ -11,6 +11,54 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import test_vanturtle as t  # noqa: E402
 import test_vtwifi as w  # noqa: E402
 import test_package as tk  # noqa: E402
+import plugin_api  # noqa: E402
+import shutil  # noqa: E402
+import subprocess  # noqa: E402
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PLUGIN_DIR = os.path.join(ROOT, "gui-plugin", "MaxxFanBridge")
+MUTANT_DIR = os.path.join(ROOT, ".build", "test-tmp", "plugin-mutant", "MaxxFanBridge")
+
+
+def plugin_copy(name, qml, old, new):
+    """The plugin with one planted bug, in .build; fails loudly if the text no longer matches."""
+    shutil.rmtree(MUTANT_DIR, ignore_errors=True)
+    shutil.copytree(PLUGIN_DIR, MUTANT_DIR)
+    path = os.path.join(MUTANT_DIR, qml)
+    with open(path) as f:
+        text = f.read()
+    assert text.count(old) == 1, "plugin mutant %r: text not found once in %s" % (name, qml)
+    with open(path, "w") as f:
+        f.write(text.replace(old, new))
+    return MUTANT_DIR
+
+
+def run_plugin_api(name, qml, old, new):
+    """A planted bug that gui-v2's API list must catch (tests/plugin_api.py)."""
+    try:
+        plugin_api.check_api_use(plugin_copy(name, qml, old, new))
+    except AssertionError as e:
+        print("caught:     %-32s %s" % (name, str(e).splitlines()[0][:60]))
+        return True
+    print("NOT CAUGHT: " + name)
+    return False
+
+
+def run_plugin(name, qml, old, new):
+    """A planted bug in the plugin's behaviour, run by tests/test_plugin.py in its own process
+    (it needs PySide6). Without PySide6 it cannot run; that is reported, not counted."""
+    env = dict(os.environ, MAXXFAN_PLUGIN_DIR=plugin_copy(name, qml, old, new))
+    result = subprocess.run([sys.executable, os.path.join(ROOT, "tests", "test_plugin.py")], env=env,
+                            capture_output=True, text=True)
+    if "skipped" in result.stdout:
+        print("not run:    %-32s (no PySide6)" % name)
+        return True
+    if result.returncode != 0:
+        last = [line for line in result.stderr.splitlines() if line.startswith("AssertionError")]
+        print("caught:     %-32s %s" % (name, (last[-1] if last else "fails")[:60]))
+        return True
+    print("NOT CAUGHT: " + name)
+    return False
 import test_presets as tp  # noqa: E402
 import test_vtboard as tb  # noqa: E402
 
@@ -271,6 +319,19 @@ def main():
         run_p("presets: save stores every preset", "_store",
               lambda orig: (lambda self, key: [orig(self, k) for k in self.order]),
               tp.test_save_as, owner=tp.d.Presets),
+    ]
+    card, page = "MaxxFanBridge_Card.qml", "MaxxFanBridge_Fan.qml"
+    results += [
+        run_plugin_api("plugin: member gui-v2 lacks", card, "secondaryText: root.fanAt(0)", "subText: root.fanAt(0)"),
+        run_plugin_api("plugin: card row not flat", card, 'objectName: "fanRow0"\n\t\tflat: true', 'objectName: "fanRow0"'),
+        run_plugin_api("plugin: imports gui-v2 internals", page, "import QtQuick\n",
+                       "import QtQuick\nimport Victron.VenusOS\n"),
+        run_plugin("plugin: active preset not shown", card, "return preset.key", 'return ""'),
+        run_plugin("plugin: icons usable with no fan", card, "enabled: root.anyFanConnected", "enabled: true"),
+        run_plugin("plugin: Aangepast opens nothing", card, "onTapped: allFans.click()", "onTapped: {}"),
+        run_plugin("plugin: tap sends nothing", card, "chooser.setValue(1)", "chooser.setValue(0)"),
+        run_plugin("plugin: page usable when offline", page, 'dataItem.uid: root.out("fan", "State")\n\t\t\tinteractive: root.connected',
+                   'dataItem.uid: root.out("fan", "State")\n\t\t\tinteractive: true'),
     ]
     results += [
         run_e("board: no resend", e_kw(tries=1), tb.test_lost_press_is_sent_again),

@@ -382,6 +382,9 @@ That's it: the setup is done.
   `scp root@<pi-address>:/data/setupOptions/MaxxFanBridge/config.ini .`
   Removing the package deletes them on the Pi (`venus/README.md`, "Remove").
 - **After changing `config.ini`**: `svc -t /service/dbus-maxxfan-bridge` restarts the driver.
+- **The plugin card**: once Venus OS brings gui-v2 1.4.6 or later, a card with preset icons
+  appears in the switch pane by itself. To keep only that card, see "The plugin card" in
+  [`docs/ui.md`](docs/ui.md).
 - **New WiFi name or password in the van**: the controllers can't connect any more and bring
   back their VanTurtle Fan hotspot; do step 8 again for each, one at a time. If the Pi's address
   changes, change the broker address on both controllers (step 11).

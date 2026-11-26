@@ -18,6 +18,8 @@ mkdir -p "$dir/venus/dbus-maxxfan-bridge"
 cp -R setup version firstCompatibleVersion AUTO_INSTALL services README.md "$dir/"
 [ -f gitHubInfo ] && cp gitHubInfo "$dir/"
 cp venus/README.md "$dir/venus/"
+mkdir -p "$dir/gui-plugin"
+cp gui-plugin/MaxxFanBridge.json "$dir/gui-plugin/"
 cp venus/dbus-maxxfan-bridge/*.py venus/dbus-maxxfan-bridge/config.default.ini "$dir/venus/dbus-maxxfan-bridge/"
 [ -n "$1" ] && echo "$1:latest" > "$dir/gitHubInfo"
 find .build/package -name .DS_Store -delete

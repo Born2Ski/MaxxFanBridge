@@ -1,0 +1,17 @@
+module Victron.GuiPlugins
+singleton PluginPalette 1.0 PluginPalette.qml
+singleton PluginWords 1.0 PluginWords.qml
+PluginAccessLevel 1.0 PluginAccessLevel.qml
+PluginCard 1.0 PluginCard.qml
+PluginPage 1.0 PluginPage.qml
+PluginItemListView 1.0 PluginItemListView.qml
+PluginDataItem 1.0 PluginDataItem.qml
+PluginDeviceModel 1.0 PluginDeviceModel.qml
+PluginLabel 1.0 PluginLabel.qml
+PluginIconImage 1.0 PluginIconImage.qml
+PluginListNavigation 1.0 PluginListNavigation.qml
+PluginListSwitch 1.0 PluginListSwitch.qml
+PluginListSlider 1.0 PluginListSlider.qml
+PluginListRadioButtonGroup 1.0 PluginListRadioButtonGroup.qml
+PluginSettingsListHeader 1.0 PluginSettingsListHeader.qml
+ListRow 1.0 ListRow.qml

@@ -118,18 +118,49 @@ These words stay English in `config.ini`.
   basic slider. If the slider misbehaves on your version, set speed to type 2 (dimmer).
 - A toggle reads Aan/Uit, not Open/Dicht. That is why the lid control is called "Klep open".
 
-## Optional later: a dedicated fan page
+## The plugin card (gui-v2 1.4.6 and later)
 
-gui-v2 (3.70~45 and later) can load extra QML pages from `/data/apps/`, attached to a device
-under Settings → Devices. That would allow a purpose-made page: big direction arrows, a lid
-graphic, the ceiling temperature. Reasons it is not in v1:
+From gui-v2 1.4.6 (a Venus OS 3.90 beta after beta 15), a plugin can add its own card to the
+switch pane. The package installs one, **Alle fans**, as a single card for both fans:
 
-- Victron marks the plugin mechanism as not officially released, and the API may change.
-- Plugin pages load on the local touchscreen only, not in Remote Console or VRM.
-- It sits several taps deep in Settings, while the switch pane is one tap from anywhere.
+```
+┌────────────────────────────────────────────────┐
+│ (fan) Alle fans                                │
+│ Koken                                          │  ← the preset that is on, or Aangepast
+│ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐   │
+│ │ pan  │ │ moon │ │ van  │ │ air  │ │slider│   │  ← one icon per preset;
+│ │Koken │ │Slapen│ │Rijden│ │Standa│ │Aange-│   │    the one that is on is lit
+│ └──────┘ └──────┘ └──────┘ └──────┘ └──────┘   │
+│ Bed                          Inblazen 30 %  ›  │  ← opens Bed's page
+│ Keuken                       Afzuigen 80 %  ›  │  ← opens Keuken's page
+└────────────────────────────────────────────────┘
+```
 
-The page would only read and write the same D-Bus paths, so it can be added later without
-changing the driver.
+- **Tapping a preset icon** switches that preset on, exactly as its switch on the Alle fans card
+  does. The icon that is on is lit, and the card's large text names it.
+- **Aangepast** is lit when no preset is on (a fan was changed by hand, keypad or remote).
+  Tapping it opens both fans on one page.
+- **Bed ›** and **Keuken ›** open that fan's page, with Ventilator, Snelheid, Richting, Klep open
+  and Modus, which behave exactly as on the fan's own card.
+- The preset icons are greyed out while no fan is connected: the driver would refuse them.
+- All texts come from the driver: the names in `config.ini`, and whatever was renamed in the
+  switch pane's edit mode. The icons are the plugin's own (pan, moon, van, airflow, sliders); a
+  preset added in `config.ini` gets a star.
+
+**It appears by itself** once Venus OS has gui-v2 1.4.6 or later; an older gui-v2 ignores it.
+The switch-pane cards then still show next to it. To keep only the plugin card, put
+`cards = plugin` under `[gui]` in `config.ini` and restart the driver; `cards = native` brings them
+back, as they were. With `cards = plugin`, a GUI that cannot load the plugin shows no fan
+controls at all, so only switch it once you've seen the card on your screen.
+
+What is not known yet, as nothing has run on gui-v2 1.4.6 here:
+- whether opening a page from a card in the switch pane works as it does from a list (gui-v2
+  documents it for lists);
+- whether the card also shows in Remote Console and VRM (gui-v2 1.4.6 loads plugins there from
+  the Pi's MQTT broker, if Venus OS publishes them).
+
+The card is tested on a desktop against stand-ins for gui-v2's plugin types (`tests/test_plugin.py`),
+and checked against gui-v2's own list of the plugin API. Victron still calls that API unfinished.
 
 ## Automation ideas that come for free
 

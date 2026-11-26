@@ -4,8 +4,9 @@
 # PackageManager (Settings → PackageManager) runs this to install, uninstall, and reinstall
 # after a Venus OS update. By hand: /data/MaxxFanBridge/setup
 #
-# What it installs: the dbus-maxxfan-bridge service (services/). Nothing in Venus OS itself
-# is modified. The settings live in /data/setupOptions/MaxxFanBridge (config.ini, the lid
+# What it installs: the dbus-maxxfan-bridge service (services/), and the gui-v2 plugin card
+# (gui-plugin/MaxxFanBridge.json) in /data/apps, where gui-v2 1.4.6 and later find it; older
+# gui-v2 ignores it. Nothing in Venus OS itself is modified. The settings live in /data/setupOptions/MaxxFanBridge (config.ini, the lid
 # memory, saved presets); updates leave them alone. Removing the package deletes them, and
 # the cards' settings in Venus OS, so a reinstall starts like new (owner's choice).
 
@@ -36,6 +37,19 @@ if [ "$scriptAction" == 'INSTALL' ] && ! $installFailed ; then
         logMessage "created $setupOptionsDir/config.ini from the defaults"
     fi
     logMessage "settings: $setupOptionsDir/config.ini; after editing: svc -t /service/dbus-maxxfan-bridge"
+fi
+
+# The plugin card: copied, and enabled, as gui-v2's plugin guide says. gui-v2 notices it by itself.
+pluginDir="/data/apps/available/MaxxFanBridge"
+if [ "$scriptAction" == 'INSTALL' ] && ! $installFailed ; then
+    mkdir -p "$pluginDir/gui-v2" /data/apps/enabled
+    cp "$scriptDir/gui-plugin/MaxxFanBridge.json" "$pluginDir/gui-v2/MaxxFanBridge.json"
+    ln -sfn "$pluginDir" /data/apps/enabled/MaxxFanBridge
+    logMessage "plugin card installed; it shows with gui-v2 1.4.6 or later"
+fi
+if [ "$scriptAction" == 'UNINSTALL' ]; then
+    rm -f /data/apps/enabled/MaxxFanBridge
+    rm -rf "$pluginDir"
 fi
 
 # A real removal, not an install that failed and is being rolled back (SetupHelper then also

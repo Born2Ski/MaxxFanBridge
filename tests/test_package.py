@@ -115,6 +115,35 @@ def test_forget():
         "SetupHelper's flags and a copied paho stay: " + repr(left)
 
 
+def test_plugin_card():
+    """The gui-v2 plugin: built from the QML that is here now, shipped, installed into /data/apps
+    on install and removed again on every uninstall (also when a failed install is rolled back)."""
+    import hashlib
+    import json
+    src = os.path.join(ROOT, "gui-plugin", "MaxxFanBridge")
+    lines = sorted(read("gui-plugin", "MaxxFanBridge.sources").splitlines(), key=lambda l: l.split()[1])
+    now = []
+    for name in sorted(os.listdir(src)):
+        with open(os.path.join(src, name), "rb") as f:
+            now.append("%s  %s" % (hashlib.sha256(f.read()).hexdigest(), name))
+    assert lines == now, "gui-plugin changed since the last build: run tools/make-plugin.sh"
+    plugin = json.loads(read("gui-plugin", "MaxxFanBridge.json"))
+    assert plugin["name"] == NAME and plugin["minRequiredVersion"] == "v1.4.6"
+    assert plugin["version"] == read("version").strip().lstrip("v"), "rebuild with the new version"
+    assert plugin["integrations"] == [{"type": 5, "url": "qrc:/MaxxFanBridge/MaxxFanBridge_Card.qml",
+                                       "cardType": 2}], "one card, in the switch pane"
+    setup = read("setup")
+    install = re.search(r"if \[ \"\$scriptAction\" == 'INSTALL' \] && ! \$installFailed ; then\n"
+                        r"    mkdir -p \"\$pluginDir/gui-v2\"(.*?)\nfi\n", setup, re.S)
+    assert install and 'cp "$scriptDir/gui-plugin/MaxxFanBridge.json" "$pluginDir/gui-v2/' in install.group(1)
+    assert "ln -sfn \"$pluginDir\" /data/apps/enabled/MaxxFanBridge" in install.group(1)
+    assert 'pluginDir="/data/apps/available/MaxxFanBridge"' in setup
+    removal = re.search(r"if \[ \"\$scriptAction\" == 'UNINSTALL' \]; then\n(.*?)\nfi\n", setup, re.S)
+    assert removal and "rm -f /data/apps/enabled/MaxxFanBridge" in removal.group(1) \
+        and 'rm -rf "$pluginDir"' in removal.group(1)
+    assert removal.start() < setup.index("endScript INSTALL_SERVICES")
+
+
 def test_service():
     services = os.listdir(os.path.join(ROOT, "services"))
     assert services == ["dbus-maxxfan-bridge"], services
@@ -147,7 +176,7 @@ def test_archive_for_usb():
         for must in ("version", "setup", "firstCompatibleVersion", "AUTO_INSTALL", "services/dbus-maxxfan-bridge/run",
                      "services/dbus-maxxfan-bridge/log/run", "venus/dbus-maxxfan-bridge/config.default.ini",
                      "venus/dbus-maxxfan-bridge/dbus-maxxfan-bridge.py", "venus/dbus-maxxfan-bridge/vtwifi.py",
-                     "venus/dbus-maxxfan-bridge/forget.py"):
+                     "venus/dbus-maxxfan-bridge/forget.py", "gui-plugin/MaxxFanBridge.json"):
             assert base + must in members, must
         for exe in ("setup", "services/dbus-maxxfan-bridge/run", "services/dbus-maxxfan-bridge/log/run",
                     "venus/dbus-maxxfan-bridge/dbus-maxxfan-bridge.py"):
