@@ -109,6 +109,7 @@ All steps, in order and with a check after each part, are in [`SETUP.md`](SETUP.
 | SetupHelper's PackageManager installs from a USB stick, honours `AUTO_INSTALL` and reinstalls after Venus OS updates without its menus (classic UI only) | Read in SetupHelper v9.7's source | Run `/data/MaxxFanBridge/setup install` over SSH |
 | Venus OS 3.85 still includes python3 paho-mqtt | Not checked | The install says so; copy paho into the settings folder (`venus/README.md`) |
 | Venus OS 3.85 includes `mosquitto_sub` / `mosquitto_pub` | Not checked | Run them from a laptop with `-h <pi-address>` |
+| Removing the package can delete the cards' settings from Venus OS (`RemoveSettings` on `/Settings/Devices`) | Read in Victron's localsettings source; not tried on a device | After a reinstall the old card titles come back; rename them as in `venus/README.md` |
 
 ## Tests
 

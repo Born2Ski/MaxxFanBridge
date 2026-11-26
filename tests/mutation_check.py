@@ -10,6 +10,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import test_vanturtle as t  # noqa: E402
 import test_vtwifi as w  # noqa: E402
+import test_package as tk  # noqa: E402
 import test_presets as tp  # noqa: E402
 import test_vtboard as tb  # noqa: E402
 
@@ -263,6 +264,10 @@ def main():
               tp.test_card_and_apply, owner=tp.d.Presets),
         run_p("closing the lid leaves the fan on", "_stop_before_closing", lambda orig: (lambda self: None),
               tp.test_closing_the_lid_stops_the_fan, owner=tp.d.Fan),
+        run_p("forget: other devices' settings too", "ours", lambda orig: (lambda items: sorted(map(str, items))),
+              tk.test_forget, owner=tk.forget),
+        run_p("forget: config.ini kept", "FILES", ("presets.json", "state-*.json", "*.tmp"),
+              tk.test_forget, owner=tk.forget),
         run_p("presets: save stores every preset", "_store",
               lambda orig: (lambda self, key: [orig(self, k) for k in self.order]),
               tp.test_save_as, owner=tp.d.Presets),

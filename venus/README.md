@@ -14,7 +14,7 @@ page is the reference for installing, updating, settings and troubleshooting.
 | On the Pi | What |
 |---|---|
 | `/data/MaxxFanBridge` | The package. Replaced as a whole by every update: don't edit anything in here |
-| `/data/setupOptions/MaxxFanBridge/config.ini` | **Your settings**: fan names, language, presets, the values from the bench checks. Updates leave this folder alone |
+| `/data/setupOptions/MaxxFanBridge/config.ini` | **Your settings**: fan names, language, presets, the values from the bench checks. Updates leave this folder alone; removing the package empties it |
 | `/data/setupOptions/MaxxFanBridge/state-fan1.json`, `presets.json` | The lid memory and presets saved with *Opslaan als* (same folder) |
 | `/var/log/dbus-maxxfan-bridge/current` | The driver's log |
 | `/var/log/PackageManager/current` | SetupHelper's log: installs, updates, errors |
@@ -109,6 +109,9 @@ dbus-send --system --print-reply --dest=com.victronenergy.switch.maxxfan_presets
 For a fan card, use `com.victronenergy.switch.maxxfan_fan1` (or `fan2`) and the controls
 `fan speed direction lid mode`. gui-v2 sorts the cards alphabetically by title.
 
+Removing the package and installing it again also resets the titles, together with everything
+else: see "Remove" below.
+
 ## Updates
 
 A new version of this project has a higher number in the `version` file at the top of the
@@ -178,10 +181,25 @@ sends it again after 10 seconds, and 10 seconds later shows 40 % again. The card
 
 ## Remove
 
+In PackageManager, open MaxxFanBridge and tap **Uninstall**, or **Remove**, which also deletes the
+downloaded package. Over SSH: `/data/MaxxFanBridge/setup uninstall`.
+
+**Removing forgets everything**, so a reinstall starts like a new install:
+
+- the cards disappear, and Venus OS forgets their titles, grouping, hidden controls and control
+  types;
+- `config.ini`, the presets saved with *Opslaan als* and the lid memory are deleted from
+  `/data/setupOptions/MaxxFanBridge`.
+
+After a reinstall you get the default names (Alle fans, Bed, Keuken) and presets, and the
+bench-check values have to go into `config.ini` again (`SETUP.md`, steps 12 and 13). To keep
+your settings, copy `config.ini` to the laptop first, and back after the reinstall (then
+`svc -t /service/dbus-maxxfan-bridge`):
+
 ```sh
-/data/MaxxFanBridge/setup uninstall
+scp root@<pi-address>:/data/setupOptions/MaxxFanBridge/config.ini .
 ```
 
-This stops and removes the driver; PackageManager will not reinstall it by itself. Your
-settings stay in `/data/setupOptions/MaxxFanBridge` for a later reinstall; delete that folder
-and `/data/MaxxFanBridge` to remove everything.
+Only a real removal does this. Updates, the reinstall after a Venus OS update and an install
+that fails leave everything as it is. A paho copied into the settings folder stays. After a
+removal, PackageManager doesn't reinstall the package by itself.

@@ -22,6 +22,9 @@ import tarfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NAME = "MaxxFanBridge"
+TMP = os.path.join(ROOT, ".build", "test-tmp")  # stay inside the project folder
+sys.path.insert(0, os.path.join(ROOT, "venus", "dbus-maxxfan-bridge"))
+import forget  # noqa: E402
 
 
 def read(*parts):
@@ -52,6 +55,64 @@ def test_package_files():
     assert "venus/dbus-maxxfan-bridge/config.default.ini" in setup
     if shutil.which("bash"):
         subprocess.run(["bash", "-n", os.path.join(ROOT, "setup")], check=True)
+
+
+def test_setup_forgets_only_on_a_real_removal():
+    """Removing the package forgets everything (owner's choice). SetupHelper also sets UNINSTALL
+    to roll back a failed install; then nothing may be forgotten. Updates only install."""
+    setup = read("setup")
+    guarded = re.search(r"if \[ \"\$scriptAction\" == 'UNINSTALL' \] && ! \$installFailed ; then\n"
+                        r"(.*?)\nfi\n", setup, re.S)
+    assert guarded, "forget only when uninstalling and the install did not fail"
+    assert "forget.py" in guarded.group(1) and setup.count("forget.py") == 1
+    assert "svc -d /service/dbus-maxxfan-bridge" in guarded.group(1), "stop the driver first"
+    assert guarded.start() < setup.index("endScript INSTALL_SERVICES"), "endScript never returns"
+
+
+class FakeSettings:
+    """com.victronenergy.settings /Settings/Devices: GetValue lists every setting below it."""
+
+    def __init__(self, items):
+        self.items, self.removed = dict(items), []
+
+    def get_object(self, service, path):
+        assert (service, path) == ("com.victronenergy.settings", "/Settings/Devices")
+        return self
+
+    def GetValue(self, dbus_interface):
+        assert dbus_interface == "com.victronenergy.BusItem"
+        return dict(self.items)
+
+    def RemoveSettings(self, paths, dbus_interface):
+        assert dbus_interface == "com.victronenergy.Settings"
+        self.removed += paths
+        for p in paths:
+            del self.items[p]
+
+
+def test_forget():
+    bus = FakeSettings({
+        "maxxfan_presets/CustomName": "Snelkeuze", "maxxfan_presets/cooking/Group": "Snelkeuze",
+        "maxxfan_fan1/ClassAndVrmInstance": "switch:60", "maxxfan_fan2/lid/ShowUIControl": 1,
+        "mppt_HQ1234/CustomName": "Dak", "maxxfanatic/x": 1, "tank_1/CustomName": "Water"})
+    assert forget.remove_settings(bus) == [
+        "maxxfan_fan1/ClassAndVrmInstance", "maxxfan_fan2/lid/ShowUIControl",
+        "maxxfan_presets/CustomName", "maxxfan_presets/cooking/Group"]
+    assert sorted(bus.items) == ["maxxfanatic/x", "mppt_HQ1234/CustomName", "tank_1/CustomName"], \
+        "other devices' settings must stay"
+    assert forget.remove_settings(bus) == [] and len(bus.removed) == 4, "nothing left to remove"
+
+    folder = os.path.join(TMP, "forget", NAME)
+    shutil.rmtree(folder, ignore_errors=True)
+    os.makedirs(os.path.join(folder, "paho", "mqtt"))
+    for name in ("config.ini", "presets.json", "state-fan1.json", "state-fan2.json.tmp",
+                 "DO_NOT_AUTO_INSTALL", "paho/mqtt/client.py"):
+        open(os.path.join(folder, name), "w").close()
+    assert forget.remove_files(folder) == ["config.ini", "presets.json", "state-fan1.json",
+                                           "state-fan2.json.tmp"]
+    left = sorted(os.path.relpath(os.path.join(d, f), folder) for d, _s, fs in os.walk(folder) for f in fs)
+    assert left == ["DO_NOT_AUTO_INSTALL", "paho/mqtt/client.py"], \
+        "SetupHelper's flags and a copied paho stay: " + repr(left)
 
 
 def test_service():
@@ -85,7 +146,8 @@ def test_archive_for_usb():
         base = NAME + "-latest/"
         for must in ("version", "setup", "firstCompatibleVersion", "AUTO_INSTALL", "services/dbus-maxxfan-bridge/run",
                      "services/dbus-maxxfan-bridge/log/run", "venus/dbus-maxxfan-bridge/config.default.ini",
-                     "venus/dbus-maxxfan-bridge/dbus-maxxfan-bridge.py", "venus/dbus-maxxfan-bridge/vtwifi.py"):
+                     "venus/dbus-maxxfan-bridge/dbus-maxxfan-bridge.py", "venus/dbus-maxxfan-bridge/vtwifi.py",
+                     "venus/dbus-maxxfan-bridge/forget.py"):
             assert base + must in members, must
         for exe in ("setup", "services/dbus-maxxfan-bridge/run", "services/dbus-maxxfan-bridge/log/run",
                     "venus/dbus-maxxfan-bridge/dbus-maxxfan-bridge.py"):

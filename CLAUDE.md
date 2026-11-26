@@ -57,6 +57,10 @@ release: PackageManager only installs a differing version), `firstCompatibleVers
 names may not contain `-`. Updates replace `/data/MaxxFanBridge` wholesale, so everything the user
 changes lives in `--data-dir /data/setupOptions/MaxxFanBridge` (config.ini copied from
 `config.default.ini` on first start, state-*.json, presets.json, an optional paho copy).
+A real uninstall (`UNINSTALL` and not `$installFailed`: SetupHelper also sets UNINSTALL to roll
+back a failed install) runs `forget.py`: removes `/Settings/Devices/maxxfan_*` from localsettings
+and config.ini, presets.json, state files (owner wants a reinstall to start fresh); paho and
+SetupHelper's flags stay. Updates never uninstall. `test_package` checks the guard.
 `tools/make-package.sh [github-user]` builds `.build/MaxxFanBridge-latest.tar.gz` for a USB stick.
 On GitHub as `Born2Ski/MaxxFanBridge`, public (`gitHubInfo` = `Born2Ski:latest`; PackageManager
 downloads the tag `latest` unauthenticated, so it must stay public). Release: raise `version`,

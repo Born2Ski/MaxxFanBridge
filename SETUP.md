@@ -380,6 +380,7 @@ That's it: the setup is done.
   kept through both.
 - **Keep a copy of your settings** on the laptop:
   `scp root@<pi-address>:/data/setupOptions/MaxxFanBridge/config.ini .`
+  Removing the package deletes them on the Pi (`venus/README.md`, "Remove").
 - **After changing `config.ini`**: `svc -t /service/dbus-maxxfan-bridge` restarts the driver.
 - **New WiFi name or password in the van**: the controllers can't connect any more and bring
   back their VanTurtle Fan hotspot; do step 8 again for each, one at a time. If the Pi's address

@@ -6,7 +6,8 @@
 #
 # What it installs: the dbus-maxxfan-bridge service (services/). Nothing in Venus OS itself
 # is modified. The settings live in /data/setupOptions/MaxxFanBridge (config.ini, the lid
-# memory, saved presets); package updates and uninstalls leave that folder alone.
+# memory, saved presets); updates leave them alone. Removing the package deletes them, and
+# the cards' settings in Venus OS, so a reinstall starts like new (owner's choice).
 
 if [ ! -f "/data/SetupHelper/HelperResources/IncludeHelpers" ]; then
     echo "MaxxFanBridge needs SetupHelper: https://github.com/kwindrem/SetupHelper"
@@ -35,6 +36,13 @@ if [ "$scriptAction" == 'INSTALL' ] && ! $installFailed ; then
         logMessage "created $setupOptionsDir/config.ini from the defaults"
     fi
     logMessage "settings: $setupOptionsDir/config.ini; after editing: svc -t /service/dbus-maxxfan-bridge"
+fi
+
+# A real removal, not an install that failed and is being rolled back (SetupHelper then also
+# sets UNINSTALL; it tells them apart the same way). Updates never get here: they only install.
+if [ "$scriptAction" == 'UNINSTALL' ] && ! $installFailed ; then
+    svc -d /service/dbus-maxxfan-bridge 2> /dev/null  # nothing may write while we forget
+    logMessage "$(python3 "$scriptDir/venus/dbus-maxxfan-bridge/forget.py" "$setupOptionsDir" 2>&1)"
 fi
 
 # Installs or removes services/dbus-maxxfan-bridge according to scriptAction (and removes it
